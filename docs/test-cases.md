@@ -8,11 +8,11 @@
 | TC-04 | Catalog item on the portal (Phase 2) | `/sp` as David Miller → open *Onboard a New Joiner* | Form renders all variables; mandatory fields enforced | All 10 variables render under *HR Services*. An empty Request is blocked with "The following fields are incomplete: Joiner name, Personal email, Start date". Equipment = None shows "No equipment task will be created." and the message clears for other values (2026-11-03) | ✅ |
 | TC-05 | Submit the item (Phase 2) | Submit the form | RITM created with the variable values | REQ0010001 / RITM0010001 for Rohan Mehta, requested for David Miller; all 10 variable values stored on the RITM (2026-11-03) | ✅ |
 | TC-06 | Knowledge article (Phase 2) | Open the item / search the portal | Article visible and linked from the item | First run: "insufficient privileges" because the KB was not linked to the portal. After linking HR Knowledge to `sp`, KB0010001 opens from the item's link for David Miller, and portal search "first week" returns the article and the item (2026-11-03) | ✅ |
-| TC-07 | Full orchestration (Phase 3) | Submit for Priya Nair, start +10 days, developer laptop, desk, training | Case + 6 tasks with the right groups and due dates | | ⬜ |
-| TC-08 | Conditional tasks (Phase 3) | Equipment = none, no desk | Case + 4 tasks | | ⬜ |
-| TC-09 | IT account sub-flow (Phase 3) | Close the IT account task | sys_user `priya.nair` exists; case Joiner User Account set; ETCMS enrollment Employee set | | ⬜ |
-| TC-10 | Day-one ready (Phase 3) | Close all tasks | Stage = Ready for Day One, Ready Date set, email to hiring manager in outbox | | ⬜ |
-| TC-11 | Cross-app proof (Phase 3) | Open the ETCMS Security Awareness session | Priya in its enrollment related list | | ⬜ |
+| TC-07 | Full orchestration (Phase 3) | Submit for Priya Nair, start +10 days, developer laptop, desk, training | Case + 6 tasks with the right groups and due dates | **Failed** (2026-11-03, 5 runs REQ0010002–06, through the REST API and the portal). The case is created correctly (In Progress, hiring manager David Miller) and the L&D task is created; then the flow errors with "Scope does not have create access to table x_2186817_employ_0_course_enrollment" and the other five tasks are never created | ❌ |
+| TC-08 | Conditional tasks (Phase 3) | Equipment = none, no desk | Case + 4 tasks | Not run: blocked by TC-07 (ETCMS create access) | ⏸ |
+| TC-09 | IT account sub-flow (Phase 3) | Close the IT account task | sys_user `priya.nair` exists; case Joiner User Account set; ETCMS enrollment Employee set | Not run: blocked by TC-07 (no IT account task is created) | ⏸ |
+| TC-10 | Day-one ready (Phase 3) | Close all tasks | Stage = Ready for Day One, Ready Date set, email to hiring manager in outbox | Not run: blocked by TC-07 | ⏸ |
+| TC-11 | Cross-app proof (Phase 3) | Open the ETCMS Security Awareness session | Priya in its enrollment related list | Not run: blocked by TC-07 (no enrollment is created) | ⏸ |
 | TC-12 | SLA attached (Phase 4) | Open an IT account task | SLA *IT account creation* attached, business-hours timer | | ⬜ |
 | TC-13 | SLA breach notification (Phase 4) | Short test SLA reaches 100% | Breach notification in outbox | | ⬜ |
 | TC-14 | Hiring manager row ACL (Phase 4) | Impersonate David Miller | Only his cases; other manager's case → record not found | | ⬜ |

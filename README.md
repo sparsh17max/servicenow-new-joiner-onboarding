@@ -24,7 +24,7 @@ Why the task extends Task but the case does not, and every field, is in [docs/da
 |-------|-------|--------|
 | 1 | Application, tables, groups, roles | ✅ Complete — TC-01…03 passed |
 | 2 | Service Catalog item, variable set, Knowledge | ✅ Complete — TC-04…06 passed |
-| 3 | Flow Designer orchestration + ETCMS integration | ⬜ |
+| 3 | Flow Designer orchestration + ETCMS integration | 🚧 Both flows built and active; ETCMS enrollment step blocked (cross-scope create), TC-07 failing |
 | 4 | SLAs, notifications, ACLs | ⬜ |
 | 5 | Import Set, dashboard, Update Set export, portfolio docs | ⬜ |
 

@@ -32,6 +32,14 @@ CSA-focused: configure via UI / Table API records only. No business rules, clien
 | KB HR Knowledge / category Onboarding | `ee03824293d81f10803931697bba107f` / `f2138a8a93981f10803931697bba104a` |
 | Article KB0010001 | `df13064293d81f10803931697bba10ea` |
 | User criteria NJO - Onboarding HR group | `8a03824293d81f10803931697bba1077` |
+| Flow *NJO Onboarding Orchestration* | `46b982ce93d81f10803931697bba1043` (Active, attached to the catalog item) |
+| Flow *NJO Create Joiner Account* | `7e1b964e935c1f10803931697bba10f5` (Active) |
+| ETCMS test session *Security Awareness Nov 2026* | `9649c68693d81f10803931697bba10dc` |
+
+### Phase 3 blocker (2026-11-03)
+Flow 1's *Create Record* on `x_2186817_employ_0_course_enrollment` fails with "Scope does not have create access". Already in place: table *Can create* / *Can update* = true (also re-saved via the form in the ETCMS scope), `sys_scope_privilege` create/read/write Allowed (NJO → ETCMS), and a cache flush. Failed TC-07 test data that needs a cleanup decision:
+- NJO0001003–NJO0001007 (Priya Nair), each with one L&D task (NJOT0001003–NJOT0001007), and REQ0010002–REQ0010006.
+- Flow 1 test context `80dd820ae01c1f100460e2c22517021a` (still Waiting), with case NJO0001002 and task NJOT0001002 for RITM0010001.
 
 ## Open items
 - **Step 15:** re-save the form, list and related-list layouts of both tables once through *Configure → Form Layout / List Layout / Related Lists* (app scope, NJO v1.0 current) so they are captured; they were created via the Table API and are not yet in the update set.

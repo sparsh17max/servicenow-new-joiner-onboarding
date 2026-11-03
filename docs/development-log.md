@@ -128,3 +128,68 @@ I ran all three tests in the browser while impersonating **David Miller** (membe
 | 2026-11-03 | Test request REQ0010001 created two catalog tasks from the DEFAULT execution plan | Left them as test data. The Phase 3 flow replaces the execution plan for new requests | Having no fulfilment configured does not mean nothing runs: the execution plan is the fallback |
 | 2026-11-03 | Reloading the portal form was blocked by a *Leave site?* prompt for the unsaved test form | Cleared `onbeforeunload` before reloading | Portal forms register an unsaved-changes guard |
 | 2026-11-03 | Catalog/KB configuration in the browser was read-only because the browser session's current application was ETCMS | Switched the browser session to *New Joiner Onboarding* (`PUT /api/now/ui/concoursepicker/application`); NJO v1.0 became current | Each session (API and browser) has its own current application |
+
+## 2026-11-03 — Phase 3, Steps 8–9: Flow Designer orchestration (built; TC-07 blocked by cross-scope create)
+**Status: both flows are built and Active, but TC-07 fails at the ETCMS enrollment step. TC-07 to TC-11 have not passed, so Phase 3 is not complete.**
+
+- **Preparation (no-code records):**
+  - **ETCMS *Course Enrollment* table, Application Access:** turned on *Can create* and *Can update*. *Accessible from: All application scopes* was already set, and *Can delete* stays off. The change was made in the ETCMS scope, so it lands in the ETCMS *Default* update set, not in NJO v1.0.
+  - **Cross-scope decision:** NJO writes into ETCMS only through table-level application access plus explicit `sys_scope_privilege` rows (create, read and write on `x_2186817_employ_0_course_enrollment`, status Allowed). Nothing in ETCMS was scripted or re-scoped, and no existing ETCMS course or record was changed.
+  - **ETCMS test data:** the only *Information Security Awareness* session (*Security Awareness Q4*, 2026-10-20) is Completed. I therefore created a future open session as test data: **Security Awareness Nov 2026** (2026-11-24 14:00–16:00, Microsoft Teams, trainer Rick Berzle, capacity 50, Open).
+  - **Onboarding Case, two new reference fields:** **Requested Item** (→ `sc_req_item`) and **Training Enrollment** (→ ETCMS Course Enrollment), both added to the form. They give a real link to the request instead of putting the case number in the RITM comments (guide step 8.3), and they let Flow 2 find the enrollment without querying on free text.
+- **Flow 1 "NJO Onboarding Orchestration"** (`sys_hub_flow` `46b982ce93d81f10803931697bba1043`, NJO scope, Run as System user, Active), 32 steps:
+  1. Trigger *Service Catalog*, then **Get Catalog Variables** (all 10 variables from *New Joiner Details*).
+  2. **Create Record** Onboarding Case: the 10 variables mapped one-to-one, plus *Hiring Manager = RITM ▸ Requested for*, *Requested Item = RITM* and *Stage = In Progress*.
+  3. **Update Record** RITM: work note "Onboarding case created by flow NJO Onboarding Orchestration: <case number>".
+  4. **Do the following in Parallel**, with six paths. Each path runs *Create Record Onboarding Task* (case, task type, group, short description "<type> … for <joiner>", **Due date = start_date pill with a Subtract Time / Add Time transform**), then *Wait For Condition* on that task's State being Closed Complete:
+     - HR paperwork → Onboarding - HR, due start − 5 days
+     - IT account → Onboarding - IT, start − 2
+     - **If** *Equipment requested* (equipment is not None) → IT equipment → Onboarding - IT, start − 3
+     - **If** *Desk needed* → Facilities desk → Onboarding - Facilities, start − 1
+     - Facilities badge → Onboarding - Facilities, start − 1
+     - **If** *Security training needed* → L&D training → Onboarding - L&D, start + 5. This path then also:
+       - runs **Look Up Record** on Training Session where *Course is Information Security Awareness* and *Session Status is one of Planned, Open*, **ordered by Start Date a→z, first record only** (the earliest session);
+       - runs **Create Record** on Course Enrollment (session = lookup result, *Enrollment Status = Enrolled*, *Enrollment Date = run date*, Employee left empty because the account does not exist yet);
+       - **updates the case**: *Training Enrollment* = the new enrollment;
+       - **adds a work note to the L&D task**: "Enrolled in ETCMS Information Security Awareness: <ENR number>";
+       - waits for the L&D task to close.
+  5. After the parallel block:
+     - **Look Up Record** finds the case's last-closed task (ordered by Closed z→a).
+     - **Update Record** on the case: *Stage = Ready for Day One*, *Ready Date* = that task's Closed time.
+     - **Send Email** to the *Hiring Manager*: "Everything is ready for {joiner} on {start date}", including the case number.
+  - The flow is attached to the catalog item through the item's *Flow* field, and the DEFAULT execution plan was cleared automatically.
+- **Flow 2 "NJO Create Joiner Account"** (`sys_hub_flow` `7e1b964e935c1f10803931697bba10f5`, Run as System user, Active). Trigger: *Onboarding Task updated* where *Task Type is IT account AND State is Closed Complete*, Run Trigger **Once**.
+  1. **Create Record** User:
+     - *User ID* = joiner email → **Split "@" → Get First Item** (`priya.nair@example.com` → `priya.nair`).
+     - *First name* / *Last name* = joiner name → **Split " " → Get First Item / Get Last Item**.
+     - *Email*, *Title*, *Department* and *Location* come from the case; *Manager = Hiring Manager*.
+  2. **Look Up Record** Onboarding Case where *Sys ID is trigger ▸ Onboarding Case ▸ Sys ID*.
+  3. **Update Record** case: *Joiner User Account* = the new user.
+  4. **If** *case ▸ Training Enrollment is not empty* → **Look Up Record** Course Enrollment by sys_id → **Update Record** *Employee* = the new user.
+- **Why two flows:**
+  - Flow 1 is long-running because it waits for six tasks; account creation is a short reaction to one task closing.
+  - Keeping them separate means IT can close its task in any order relative to the others.
+  - User creation can be tested on its own, and a failure there does not break the orchestration.
+- **No-code decisions:**
+  - Date arithmetic uses **pill transform functions** (*Date & Time → Subtract Time / Add Time*), so the guide's "Start − N days" needs no script.
+  - `user_name` from email uses *String → Split* plus *Utilities → Get First Item from Array*. First and last name use the same transforms with a space separator.
+  - "Ready Date = now" uses the last-closed task's *Closed* value instead of a `gs.nowDateTime()` script; the last task's close time is the moment the joiner became ready.
+  - "Earliest open session" uses Look Up Record's *Order by* plus *Return only the first record* instead of a scripted query.
+  - Workflow Studio offers only *Convert to subflow* for a multi-select, so the six task/wait pairs could not be copy-pasted and each path was built by hand.
+- **Tested:**
+  - **Flow 1 *Test* with RITM0010001**, run before the parallel block existed. It created case NJO0001002 with all variables, Hiring Manager David Miller and Stage In Progress, wrote the RITM work note with the case number, and created HR task NJOT0001002 due 2026-11-12 (start − 5). That test context is still *Waiting* on its HR task.
+  - **TC-07 failed in 5 runs:** REQ0010002–REQ0010006 for Priya Nair. Four went through the Service Catalog REST API as David Miller and one through the portal form as David Miller.
+    - Each run creates the case correctly (Stage In Progress, Hiring Manager David Miller) and creates the L&D task.
+    - The flow then errors with *"Scope does not have create access to table x_2186817_employ_0_course_enrollment"*.
+    - The other five parallel paths never create their tasks.
+- **Evidence:** `screenshots/flow2-create-joiner-account.jpg`, `screenshots/tc07-flow-contexts-error.jpg`, `screenshots/tc07-portal-priya-nair.jpg`, `screenshots/etcms-enrollment-application-access.jpg`
+
+| Date | Issue | Resolution | Learning |
+|------|-------|------------|----------|
+| 2026-11-03 | **Open (TC-07):** Flow 1's Create Record on ETCMS Course Enrollment fails with "Scope does not have create access" | **Not resolved.** Tried, in order: table *Can create* / *Can update* = true (the form shows both ticked); explicit `sys_scope_privilege` create/read/write Allowed from NJO to ETCMS; a `cache.do` flush; submitting through the portal instead of the REST API (rules out the `sn_sc` originating scope); toggling *Can create* off and on through the table form in the ETCMS scope. The flow runs as `system` in scope `x_2186817_njo`, and the read on *Training Session* in the same branch succeeds | Needs a different approach (see the options in the Phase 3 report) |
+| 2026-11-03 | An error in one parallel path stops the whole *Do the following in Parallel* block | Matters for the fix: the ETCMS step should not take the other teams' tasks down with it | Parallel paths share one flow context; an unhandled error ends all of them |
+| 2026-11-03 | Dot-walked record pills (trigger ▸ task ▸ Onboarding Case) are greyed out as the *Record* input of Update Record | Added a **Look Up Record** on Onboarding Case by sys_id and updated its output instead | Update Record needs a record pill produced by a step, not a dot-walk |
+| 2026-11-03 | Pill transforms were not offered when clicking a pill | They appear as an **f(x)** icon when hovering over a dropped pill | Transforms are per pill and can be chained (Split → Get First Item) |
+| 2026-11-03 | Workflow Studio jumped to its Home tab after closing the transform panel with Escape, or after a horizontal scroll | Close panels by clicking elsewhere, and avoid horizontal scrolling | Escape and horizontal swipe are bound to tab navigation |
+| 2026-11-03 | The Chrome renderer froze twice in the Flow 2 editor (CDP screenshot timeouts) | Opened the flow in a fresh tab. Steps already confirmed with *Done* were persisted; the step being edited had to be re-entered | Each *Done* saves the step server-side |
+| 2026-11-03 | Native `<select>` operators in If conditions ignore clicks under automation | Focus the select, press Escape, type the option text, press Tab | Keyboard selection works for native selects |
