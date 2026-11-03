@@ -2,7 +2,7 @@
 
 A **ServiceNow scoped application** that turns a hiring manager's single Service Portal request into coordinated onboarding work for **HR, IT, Facilities and L&D**, with SLAs, role-based access and a cross-app integration that enrols every new joiner in mandatory Security Awareness training in the [Employee Training and Certification Management (ETCMS)](https://github.com/sparsh17max/servicenow-employee-training-management) application.
 
-Built **without code** — a CSA-focused project: Service Catalog, Flow Designer, Users/Groups/Roles, ACLs, SLA Definitions, Import Sets, Reports and Update Sets are all configuration. The only script is the standard one-line `gs.getUserID()` ACL condition.
+Built **without code** — a CSA-focused project: Service Catalog, Flow Designer, Users/Groups/Roles, ACLs, SLA Definitions, Import Sets, Reports and Update Sets are all configuration. There are no scripts: even the hiring-manager ACL, where a one-line `gs.getUserID()` condition is the usual answer, uses the condition builder's *is (dynamic) Me*.
 
 - **Instance:** ServiceNow PDI (Zurich), branded for the fictional company *Novatrix Solutions*
 - **Scope:** `x_2186817_njo`
@@ -25,7 +25,7 @@ Why the task extends Task but the case does not, and every field, is in [docs/da
 | 1 | Application, tables, groups, roles | ✅ Complete — TC-01…03 passed |
 | 2 | Service Catalog item, variable set, Knowledge | ✅ Complete — TC-04…06 passed |
 | 3 | Flow Designer orchestration + ETCMS integration | ✅ Complete — TC-07…11 passed (ETCMS writes run in ETCMS-scoped subflows) |
-| 4 | SLAs, notifications, ACLs | ⬜ |
+| 4 | SLAs, notifications, ACLs | ✅ Complete — TC-12…16 passed (no-script ACLs) |
 | 5 | Import Set, dashboard, Update Set export, portfolio docs | ⬜ |
 
 ## Screenshots
@@ -43,6 +43,10 @@ Why the task extends Task but the case does not, and every field, is in [docs/da
 | Flow 1 run: the L&D path calls the ETCMS subflow inside Try | ETCMS-scoped subflow *Enroll in Security Awareness* |
 | ![Ready for Day One](screenshots/tc10-case-ready-for-day-one.jpg) | ![ETCMS session](screenshots/tc11-etcms-session-enrollments.jpg) |
 | Case Ready for Day One, all six tasks closed | New joiners in the ETCMS Security Awareness session |
+| ![Task SLAs](screenshots/tc12-it-account-task-slas.jpg) | ![SLA emails](screenshots/tc13-sla-warning-and-breach-emails.jpg) |
+| Business-hours SLAs on an onboarding task | SLA 75% warning and breach emails from the SLA flow |
+| ![David Miller's cases](screenshots/tc14-david-miller-case-list.jpg) | ![No Joiner Email](screenshots/tc16-david-miller-case-no-joiner-email.jpg) |
+| Row ACL: a hiring manager sees only their own cases | Field ACL: Joiner Email hidden from hiring managers |
 
 ## Documentation
 - [Development log](docs/development-log.md) — what / why / learned for each step, with issue tables

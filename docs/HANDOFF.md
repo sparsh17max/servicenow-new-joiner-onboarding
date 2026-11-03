@@ -7,7 +7,7 @@
 - Companion app: ETCMS, scope `x_2186817_employ_0`, repo `../servicenow-employee-training-management`.
 
 ## Rules
-CSA-focused: configure via UI / Table API records only. No business rules, client scripts, script includes or background scripts. Only script allowed: the `gs.getUserID()` ACL condition (Step 12). Log every no-code decision in the dev log.
+CSA-focused: configure via UI / Table API records only. No business rules, client scripts, script includes or background scripts. Only script allowed: the `gs.getUserID()` ACL condition (Step 12). It was not used: all ACL conditions come from the condition builder (*is (dynamic) Me*, *One of My Groups*). Log every no-code decision in the dev log.
 
 ## Instance IDs
 | Item | sys_id |
@@ -37,6 +37,15 @@ CSA-focused: configure via UI / Table API records only. No business rules, clien
 | ETCMS test session *Security Awareness Nov 2026* | `9649c68693d81f10803931697bba10dc` |
 | ETCMS subflow *Enroll in Security Awareness* (ETCMS scope, Default update set) | `8919ea0e93dc1f10803931697bba10e1` |
 | ETCMS subflow *Link Enrollment to Employee* (ETCMS scope, Default update set) | `b782fec293505f10803931697bba103f` |
+| SLA defs IT account creation / Equipment ready | `d248630e93d45f10803931697bba100f` / `b648e30e93d45f10803931697bba10b3` |
+| SLA defs Desk & badge / HR paperwork | `ef48270693d45f10803931697bba106e` / `8c58270693d45f10803931697bba1074` |
+| SLA def TEST - 10 min breach (**inactive**) | `ec58270e93d45f10803931697bba10a4` |
+| SLA flow *NJO SLA Notifications* | `904ae70293185f10803931697bba10ed` |
+| Notifications assigned-to-group / SLA 75% / SLA breached | `ab68ab8293d45f10803931697bba10ff` / `73682b0e93d45f10803931697bba1075` / `c0782b0e93d45f10803931697bba10b9` |
+| Module *Onboarding Task SLAs* | `8849ef4e93d45f10803931697bba1053` |
+| Related list (task form, Task SLAs) | `9839270e93d45f10803931697bba1016` |
+
+ACLs (9, NJO scope): see `screenshots/acls-njo-tables.jpg` and the Step 12 table in the dev log. Creating or editing them needs *Elevate role → security_admin* in the browser session.
 
 ### Cross-scope pattern (Phase 3)
 An NJO-scoped flow cannot create or update ETCMS Course Enrollment on this instance, even with table access, `sys_scope_privilege` rows and *All application scopes*. All ETCMS writes go through the two ETCMS-scoped subflows above, called inside **Try** blocks. Reads (Look Up) from NJO work. Reuse this pattern for any future cross-app write.
@@ -47,8 +56,13 @@ An NJO-scoped flow cannot create or update ETCMS Course Enrollment on this insta
 - The failed-run data (NJO0001002–07, REQ0010002–06) was deleted. The 5 ERROR flow contexts from those runs remain as history.
 - Known gap: enrollments created by the subflow have no *Enrollment Date* (Phase 5 polish).
 
+### Test data after Phase 4
+- NJO0001010 (Meera Shah, REQ0010009, Hiring Manager **Jerrod Bennett**): In Progress, 5 open tasks NJOT0001018–22 with live SLAs; its Flow 1 context is Waiting. NJOT0001019 also carries the breached TEST SLA.
+- Arjun's NJOT0001015/17 got retroactive SLAs after a work-note update.
+- Several demo users (Carol Coughlin, Christen Mitchell, David Loo, Rick Berzle) have Notification = Disabled, so they never appear as email recipients.
+
 ## Open items
-- **Step 15:** re-save the form, list and related-list layouts of both tables once through *Configure → Form Layout / List Layout / Related Lists* (app scope, NJO v1.0 current) so they are captured; they were created via the Table API and are not yet in the update set.
+- **Step 15:** re-save the form, list and related-list layouts (including the Phase 4 *Task SLAs* related list on the task form) of both tables once through *Configure → Form Layout / List Layout / Related Lists* (app scope, NJO v1.0 current) so they are captured; they were created via the Table API and are not yet in the update set.
 - Groups, members and role grants are data — not captured by the update set.
 - Test data:
   - NJO0001001 (Ananya Iyer) and NJOT0001001 from TC-01/02.

@@ -2,7 +2,7 @@
 
 Format for each entry: **what** I implemented, **why**, and **what I learned**.
 
-**Project rule (CSA focus):** everything is configured through the UI or as Table API records (tables, dictionary entries, choices, roles, groups, layouts, catalog items, flows, ACLs, SLA definitions, transform maps). No business rules, client scripts or script includes. The only script allowed is the one-line `gs.getUserID()` ACL condition in Phase 4. When a script would have been the obvious route, the no-code alternative is used and the reason is logged here under **No-code decision**.
+**Project rule (CSA focus):** everything is configured through the UI or as Table API records (tables, dictionary entries, choices, roles, groups, layouts, catalog items, flows, ACLs, SLA definitions, transform maps). No business rules, client scripts or script includes. The only script allowed is the one-line `gs.getUserID()` ACL condition in Phase 4. In the end it was not needed: the condition builder's *is (dynamic) Me* expresses it, so the project has no scripts. When a script would have been the obvious route, the no-code alternative is used and the reason is logged here under **No-code decision**.
 
 **How the instance was changed:** Table API calls from this machine using session auth (`scripts/sn.sh`: POST `/login.do`, cookies, `g_ck` sent as `X-UserToken`), with the session's current application set to *New Joiner Onboarding* and the current update set set to *NJO v1.0*. The browser (Claude in Chrome) was used only to run test cases and take screenshots.
 
@@ -238,3 +238,104 @@ I ran all three tests in the browser while impersonating **David Miller** (membe
 | 2026-11-03 | Workflow Studio jumped to its Home tab after closing the transform panel with Escape, or after a horizontal scroll | Close panels by clicking elsewhere, and avoid horizontal scrolling | Escape and horizontal swipe are bound to tab navigation |
 | 2026-11-03 | The Chrome renderer froze twice in the Flow 2 editor (CDP screenshot timeouts) | Opened the flow in a fresh tab. Steps already confirmed with *Done* were persisted; the step being edited had to be re-entered | Each *Done* saves the step server-side |
 | 2026-11-03 | Native `<select>` operators in If conditions ignore clicks under automation | Focus the select, press Escape, type the option text, press Tab | Keyboard selection works for native selects |
+
+## 2026-11-03 — Phase 4, Step 10: SLA definitions on Onboarding Task
+- **What:** Four SLA definitions (`contract_sla`) on `x_2186817_njo_onboarding_task`, all *Resolution*, schedule **8-5 weekdays** (Mon–Fri 08:00–17:00), time zone source = *the SLA definition's time zone* (America/Los_Angeles, the instance default):
+
+  | SLA | Start condition | Duration |
+  |-----|-----------------|----------|
+  | IT account creation | Task Type = it_account AND State = Open | 18 h (= 2 business days × 9 h) |
+  | Equipment ready | Task Type = it_equipment AND State = Open | 27 h (= 3 business days) |
+  | Desk & badge | Task Type IN facilities_desk, facilities_badge AND State = Open | 18 h |
+  | HR paperwork | Task Type = hr_paperwork AND State = Open | 27 h |
+
+  - **Stop** = State is Closed Complete. **Cancel** = State is Closed Incomplete or Closed Skipped (*when to cancel = cancel conditions are met*).
+  - **Retroactive start = Created**, so a task that was already open when the SLAs were activated gets an SLA measured from its creation (used for Arjun Rao's open tasks).
+  - **Task SLAs** related list (`task_sla.task`) added to the task form. The default `task_sla` list view already shows *Business time left*, *Business elapsed time* and *Business elapsed percentage*, so the related list shows the timers without a new list layout.
+  - New module **Onboarding Task SLAs** (`task_sla` filtered on `task.sys_class_name = x_2186817_njo_onboarding_task`, sorted by planned end time) in the NJO menu.
+- **Temporary test SLA:** **TEST - 10 min breach**, IT account start condition, 10 minutes, *no schedule*, retroactive off, so the TC-13 breach happens within minutes. It was **deactivated after TC-13** (`active = false`). The record stays in the update set as an inactive definition, and the one breached `task_sla` on NJOT0001019 stays as evidence.
+- **Why:**
+  - Durations are stored as schedule time, not calendar time. On an 8-5 schedule one business day is 9 hours, so "2 business days" is entered as 18 h, and the engine counts only weekday 08:00–17:00.
+  - State = Open in every start condition follows the guide's IT account row. The guide gives Open only for IT account; I applied it to all four for consistency.
+  - The SLA engine checks the start condition only to *start* an SLA. With the default *when to cancel = start condition no longer matches*, moving a task to Work in Progress would cancel its SLA. Explicit cancel conditions avoid that.
+- **No-code decision:** SLAs, schedule, related list and module are all configuration. No *SLA Condition Rules* script class was needed.
+- **Learned:**
+  - SLAs attach only when a task is inserted or updated. Tasks that existed before the definitions got their SLAs after a work-note update (Arjun's NJOT0001015/17), with the start time set back to creation by *retroactive start*.
+  - The time zone matters: with *the caller's time zone* (the default) the engine reads `task.caller_id`, which Onboarding Task does not use, so I set the definition's own time zone.
+- **Evidence:** `screenshots/sla-definitions-onboarding-task.jpg`, `screenshots/tc12-it-account-task-slas.jpg`
+
+## 2026-11-03 — Phase 4, Step 11: Notifications
+- **What:**
+  1. **NJO - Task assigned to your group** (`sysevent_email_action` on Onboarding Task):
+     - *Record inserted*, condition *Assignment group is not empty*, recipients *Users/Groups in fields* = Assignment group.
+     - Subject "New onboarding task for <group>: <number> - <short description>". The body has the case, due date and a link.
+  2. **NJO - SLA at 75%** (on `task_sla`, *Send when = Triggered*): recipient field **`task.assignment_group.manager`** (dot-walked from the Task SLA to the task's group manager).
+  3. **NJO - SLA breached** (on `task_sla`, *Triggered*): `task.assignment_group.manager` **plus Beth Anglin** (coordinator) as a fixed user recipient.
+  4. **Day-one ready**: sent by Flow 1 since Phase 3 (TC-10). It is the fourth notification of the guide; nothing new was built for it.
+  - **SLA flow NJO SLA Notifications** (Flow Designer, NJO scope, trigger *SLA Task*):
+    1. *SLA Percentage Timer* 75%;
+    2. *Send Notification* [NJO - SLA at 75%] for the Task SLA record;
+    3. *SLA Percentage Timer* 100%;
+    4. *Send Notification* [NJO - SLA breached].
+
+    All four SLA definitions (and the TEST SLA) use it in their **Flow** field instead of *Default SLA flow*.
+- **Why not the default SLA flow:**
+  - *Default SLA flow* fires `sla.warning.parm` / `sla.warning.breach.parm` events for the task's *Assigned to* and the *Assigned to's manager*. Onboarding tasks are assigned to groups and usually have no Assigned to, so those events would have no recipient.
+  - The SLA definition's *Flow* field is the platform's place for SLA warning and breach behaviour, so a small custom SLA flow is the "SLA definition notification setting" route the brief allows.
+  - *Triggered* notifications keep the recipients and the text in notification records, where an admin edits them without opening the flow.
+- **No-code decision:** I didn't use mail scripts or event scripts. Recipients are a dot-walked field and a fixed user, and the body uses `${field}` variables only. The OOB SLA notifications use `${mail_script:…}`, so I did not reuse them.
+- **Learned:**
+  - The SLA percentage timers run on the SLA's schedule, so on a business SLA the 75% point is in business time.
+  - The SLA engine starts one flow context per Task SLA. When a task closes before 75%, the engine cancels the context, so no late warning is sent.
+  - *Users/Groups in fields* accepts dot-walked references (`task.assignment_group.manager`).
+  - A group with no email address is expanded to its members, and the group manager is included. Members whose *Notification* setting is Disabled are skipped. In this PDI's demo data that applies to Carol Coughlin, Christen Mitchell, David Loo and Rick Berzle, so, for example, the HR task email went only to Beth Anglin (HR manager).
+- **Evidence:** `screenshots/sla-flow-njo-sla-notifications.jpg`, `screenshots/tc13-sla-warning-and-breach-emails.jpg`
+
+## 2026-11-03 — Phase 4, Step 12: ACLs
+- **What:** I created nine record ACLs in the NJO scope, after elevating to `security_admin` (user menu → *Elevate role*). The records were then inserted from that elevated browser session through the Table API.
+
+  | # | ACL | Operation | Roles | Condition (condition builder) |
+  |---|-----|-----------|-------|-------------------------------|
+  | 1 | onboarding_case | read | hiring_manager | **Hiring Manager is (dynamic) Me** → `hiring_managerDYNAMIC90d1921e…` |
+  | 2 | onboarding_case | read | coordinator, fulfiller | — |
+  | 3 | onboarding_case | write | coordinator | — |
+  | 4 | onboarding_task | read | fulfiller | **Assignment group is (dynamic) One of My Groups** |
+  | 5 | onboarding_task | write | fulfiller | same as 4 |
+  | 6 | onboarding_task | read | hiring_manager | **Onboarding Case ▸ Hiring Manager is (dynamic) Me** (dot-walk) |
+  | 7 | onboarding_task | read | coordinator | — (added: "Beth sees all") |
+  | 8 | onboarding_task | write | coordinator | — (added) |
+  | 9 | onboarding_case.joiner_email | read | coordinator, fulfiller | — (field ACL) |
+
+- **The gs.getUserID() decision:** the guide expected one script, `hiring_manager=javascript:gs.getUserID()`, for ACL 1. The condition builder can express it without a script: the dynamic filter option **Me** (`sys_filter_option_dynamic` 90d1921e…) is the platform's packaged `gs.getUserID()`, and it is offered for any reference to `sys_user`, dot-walked fields included (ACL 6). **So the project ends with zero hand-written scripts:** no `javascript:` in any ACL condition and *Advanced* is off on all nine. The one-liner would only be needed if the builder could not express the rule (for example, comparing two fields on the record), and none of these ACLs needed it.
+- **Why:**
+  - Create/delete ACLs were not added: cases and tasks are created by the flows (running as system) and by admins, so no app role needs create or delete.
+  - ACLs 7–8 go beyond the guide's table. Without them the coordinator would read all cases but only the tasks of the groups the coordinator belongs to (HR), which contradicts "Beth sees all".
+  - The field ACL is an *allow-if* for the two roles. A hiring manager passes the table ACL but matches no field rule for `joiner_email`, so the field is removed from the form and from REST results.
+- **Learned:**
+  - Writing to `sys_security_acl` needs the elevated `security_admin` role even for admin. Elevation is per interactive session and I found no REST endpoint to elevate the shell session (`/api/now/ui/user/elevate_roles` accepts only GET), so the ACLs were inserted from the elevated browser session.
+  - On insert the platform overwrote my *Description* with a generated summary ("Allow read for records in …, for users with role …, and if the ACL condition (…) evaluates to true"). It is accurate, so I kept it.
+  - Defining ACLs on the child table (Onboarding Task) means the parent `task` ACLs no longer apply to it. Evaluation stops at the most specific table that has a matching ACL.
+  - Zurich's message for a record blocked by a read ACL is "Security constraints prevent access to requested page" (older releases said "Record not found"). The list hides the rows without a "rows removed" banner.
+- **Evidence:** `screenshots/acls-njo-tables.jpg`, `screenshots/tc14-david-miller-case-list.jpg`, `screenshots/tc14-other-managers-case-blocked.jpg`, `screenshots/tc15-abel-tuter-it-tasks-only.jpg`, `screenshots/tc16-david-miller-case-no-joiner-email.jpg`, `screenshots/tc16-beth-anglin-case-with-joiner-email.jpg`
+
+## 2026-11-03 — Phase 4 test cases (TC-12 to TC-16, all passed)
+- **Test data:** request **REQ0010009** submitted through the Service Catalog API while impersonating **Jerrod Bennett** (Meera Shah, start 2026-11-16, standard laptop, desk, no training). Flow 1 created case **NJO0001010** (Hiring Manager Jerrod Bennett) with 5 tasks NJOT0001018–22. This gave a fresh IT account task and a case owned by a *second* hiring manager for TC-14. Arjun Rao's NJO0001009 provides SLAs on older open tasks.
+- **TC-12:** IT account task NJOT0001019 has **IT account creation** (in progress, planned end 2026-11-05 09:54, 17 h 57 min business time left) in its Task SLAs related list. It started at 09:54 PST on Tuesday, inside the schedule, so the timer counts business time: after 2 minutes, business elapsed was 2 minutes and 0.21% (2 of 1,080 minutes). The 5 "Task assigned to your group" emails were in the outbox at the same moment.
+- **TC-13:** the TEST SLA on the same task.
+  - At 75% (10:02:44) *SLA warning: TEST - 10 min breach on NJOT0001019 has reached 75%* went to fred.luddy (IT group manager).
+  - At 100% (10:05:13), with `has_breached = true`, *SLA BREACHED: …* went to fred.luddy and beth.anglin.
+  - Both are `send-ready` in `sys_email` (outbound SMTP is off on the PDI).
+  - The flow context reached COMPLETE, and the TEST SLA was then deactivated.
+- **TC-14 (David Miller):** the case list shows exactly NJO0001001, NJO0001008, NJO0001009. Opening NJO0001010 (Jerrod's) by URL shows *Security constraints prevent access to requested page*; the REST API returns "No Record found … ACL restricts the record retrieval". David's own case form is read-only (no write ACL for hiring managers), and its related list shows that case's tasks (ACL 6).
+- **TC-15 (Abel Tuter, Onboarding - IT):** the task list shows only the 5 IT tasks (IT account / IT equipment for Priya, Arjun, Meera). Opening HR task NJOT0001020 by URL is blocked by security constraints.
+  - Beth Anglin, for contrast, sees all 16 tasks over REST.
+- **TC-16:** on David Miller's NJO0001009 form the **Joiner Email** field is absent, and REST results omit it. Beth's form shows `arjun.rao@example.com`, and Abel (fulfiller) also gets the field.
+- **Update set:** NJO v1.0 captured 5 SLA definitions, 3 notifications, the flow, the module, 9 ACLs and 11 ACL-role rows. The *Task SLAs* related-list row was created via the Table API and, like the Phase 1 layouts, is left for the Step 15 re-save.
+
+| Date | Issue | Resolution | Learning |
+|------|-------|------------|----------|
+| 2026-11-03 | *Default SLA flow* notifies Assigned to and Assigned to's manager; onboarding tasks are group-assigned with no Assigned to | Own SLA flow with two percentage timers and two Triggered notifications to `task.assignment_group.manager` | The SLA definition's Flow field is where warning/breach behaviour is chosen |
+| 2026-11-03 | Some group members never receive the group notification | Their user record has Notification = Disabled (PDI demo data); the manager and enabled members do receive it | Group expansion respects each user's notification setting |
+| 2026-11-03 | The shell session could not be elevated to `security_admin`: no usable REST endpoint (`elevate_roles` accepts only GET) | Elevated in the browser, then inserted the ACL records from that session's page context | Elevation belongs to the interactive session |
+| 2026-11-03 | The ACL Description I wrote was replaced on insert | Kept the generated text | Zurich generates ACL descriptions from roles and condition |
+| 2026-11-03 | The four old Workflow Studio tabs from Phase 3 became unresponsive and could not be closed; new tabs on the same site froze intermittently (screenshot timeouts) | Worked in fresh tabs, read pages with text extraction when screenshots timed out, retried the screenshot | Same-site tabs share a renderer process; a hung Studio tab slows every tab on the instance |
