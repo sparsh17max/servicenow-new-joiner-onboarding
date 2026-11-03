@@ -22,6 +22,8 @@ Standalone table (does not extend Task). Auto-number `NJO0001001…`.
 | Stage | `stage` | Choice (no *None*) | `requested` (default), `in_progress`, `ready_for_day_one`, `closed`, `cancelled` |
 | Ready Date | `ready_date` | Date/Time | Set by the flow when all tasks close |
 | Notes | `notes` | String (4000) | |
+| Requested Item | `requested_item` | Reference → `sc_req_item` | Added in Phase 3. Set by Flow 1, links the case to the RITM |
+| Training Enrollment | `training_enrollment` | Reference → `x_2186817_employ_0_course_enrollment` | Added in Phase 3. Set by Flow 1 from the ETCMS subflow output; Flow 2 uses it to link the new user |
 
 ## Onboarding Task — `x_2186817_njo_onboarding_task` (extends `task`)
 Auto-number `NJOT0001001…`. Inherits 71 Task columns, including Number, Short description, Description, State, Priority, Assignment group, Assigned to, Opened, Closed, **Due date** (`due_date`, reused instead of a new Date field) and Work notes.

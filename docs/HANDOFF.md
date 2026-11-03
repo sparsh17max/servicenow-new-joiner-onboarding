@@ -35,11 +35,17 @@ CSA-focused: configure via UI / Table API records only. No business rules, clien
 | Flow *NJO Onboarding Orchestration* | `46b982ce93d81f10803931697bba1043` (Active, attached to the catalog item) |
 | Flow *NJO Create Joiner Account* | `7e1b964e935c1f10803931697bba10f5` (Active) |
 | ETCMS test session *Security Awareness Nov 2026* | `9649c68693d81f10803931697bba10dc` |
+| ETCMS subflow *Enroll in Security Awareness* (ETCMS scope, Default update set) | `8919ea0e93dc1f10803931697bba10e1` |
+| ETCMS subflow *Link Enrollment to Employee* (ETCMS scope, Default update set) | `b782fec293505f10803931697bba103f` |
 
-### Phase 3 blocker (2026-11-03)
-Flow 1's *Create Record* on `x_2186817_employ_0_course_enrollment` fails with "Scope does not have create access". Already in place: table *Can create* / *Can update* = true (also re-saved via the form in the ETCMS scope), `sys_scope_privilege` create/read/write Allowed (NJO → ETCMS), and a cache flush. Failed TC-07 test data that needs a cleanup decision:
-- NJO0001003–NJO0001007 (Priya Nair), each with one L&D task (NJOT0001003–NJOT0001007), and REQ0010002–REQ0010006.
-- Flow 1 test context `80dd820ae01c1f100460e2c22517021a` (still Waiting), with case NJO0001002 and task NJOT0001002 for RITM0010001.
+### Cross-scope pattern (Phase 3)
+An NJO-scoped flow cannot create or update ETCMS Course Enrollment on this instance, even with table access, `sys_scope_privilege` rows and *All application scopes*. All ETCMS writes go through the two ETCMS-scoped subflows above, called inside **Try** blocks. Reads (Look Up) from NJO work. Reuse this pattern for any future cross-app write.
+
+### Test data after Phase 3
+- NJO0001008 (Priya Nair, REQ0010007): Ready for Day One, 6 tasks closed, user `priya.nair`, ENR0001021. Its Employee was set by hand after the first TC-09 attempt.
+- NJO0001009 (Arjun Rao, REQ0010008): In Progress, IT account task closed, user `arjun.rao`, ENR0001022. HR, badge and L&D tasks are still open, so its Flow 1 context is Waiting.
+- The failed-run data (NJO0001002–07, REQ0010002–06) was deleted. The 5 ERROR flow contexts from those runs remain as history.
+- Known gap: enrollments created by the subflow have no *Enrollment Date* (Phase 5 polish).
 
 ## Open items
 - **Step 15:** re-save the form, list and related-list layouts of both tables once through *Configure → Form Layout / List Layout / Related Lists* (app scope, NJO v1.0 current) so they are captured; they were created via the Table API and are not yet in the update set.
@@ -47,5 +53,6 @@ Flow 1's *Create Record* on `x_2186817_employ_0_course_enrollment` fails with "S
 - Test data:
   - NJO0001001 (Ananya Iyer) and NJOT0001001 from TC-01/02.
   - REQ0010001 / RITM0010001 (Rohan Mehta, requested by David Miller) from TC-05, plus its two DEFAULT-execution-plan catalog tasks SCTASK0010001/2.
-- Phase 3: attaching the flow to the item replaces the DEFAULT execution plan. Make UI configuration changes in the browser with the current application set to New Joiner Onboarding (the browser session was switched on 2026-11-03).
+- Phase 3: attaching the flow to the item replaces the DEFAULT execution plan. Make UI configuration changes in the browser with the current application set to New Joiner Onboarding. It was switched back to NJO after the ETCMS subflows were built (2026-11-03).
+- Workflow Studio automation: open each Studio record in a fresh tab and keep few tabs open, otherwise Chrome freezes.
 - The KB, KB category and article are data and are not in the update set. The portal link, user criteria and KB criteria mappings are captured.

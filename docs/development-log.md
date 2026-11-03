@@ -129,8 +129,8 @@ I ran all three tests in the browser while impersonating **David Miller** (membe
 | 2026-11-03 | Reloading the portal form was blocked by a *Leave site?* prompt for the unsaved test form | Cleared `onbeforeunload` before reloading | Portal forms register an unsaved-changes guard |
 | 2026-11-03 | Catalog/KB configuration in the browser was read-only because the browser session's current application was ETCMS | Switched the browser session to *New Joiner Onboarding* (`PUT /api/now/ui/concoursepicker/application`); NJO v1.0 became current | Each session (API and browser) has its own current application |
 
-## 2026-11-03 — Phase 3, Steps 8–9: Flow Designer orchestration (built; TC-07 blocked by cross-scope create)
-**Status: both flows are built and Active, but TC-07 fails at the ETCMS enrollment step. TC-07 to TC-11 have not passed, so Phase 3 is not complete.**
+## 2026-11-03 — Phase 3, Steps 8–9: Flow Designer orchestration and the ETCMS integration
+**Status: complete. TC-07 to TC-11 passed on 2026-11-03 after moving every ETCMS write into two ETCMS-scoped subflows (see "Fixing TC-07" below). The first build failed TC-07 five times; this entry keeps that history.**
 
 - **Preparation (no-code records):**
   - **ETCMS *Course Enrollment* table, Application Access:** turned on *Can create* and *Can update*. *Accessible from: All application scopes* was already set, and *Can delete* stays off. The change was made in the ETCMS scope, so it lands in the ETCMS *Default* update set, not in NJO v1.0.
@@ -149,7 +149,7 @@ I ran all three tests in the browser while impersonating **David Miller** (membe
      - Facilities badge → Onboarding - Facilities, start − 1
      - **If** *Security training needed* → L&D training → Onboarding - L&D, start + 5. This path then also:
        - runs **Look Up Record** on Training Session where *Course is Information Security Awareness* and *Session Status is one of Planned, Open*, **ordered by Start Date a→z, first record only** (the earliest session);
-       - runs **Create Record** on Course Enrollment (session = lookup result, *Enrollment Status = Enrolled*, *Enrollment Date = run date*, Employee left empty because the account does not exist yet);
+       - runs **Create Record** on Course Enrollment (session = lookup result, *Enrollment Status = Enrolled*, *Enrollment Date = run date*, Employee left empty because the account does not exist yet). *First build. This step is now the ETCMS subflow call inside Try (see "Fixing TC-07")*;
        - **updates the case**: *Training Enrollment* = the new enrollment;
        - **adds a work note to the L&D task**: "Enrolled in ETCMS Information Security Awareness: <ENR number>";
        - waits for the L&D task to close.
@@ -165,7 +165,7 @@ I ran all three tests in the browser while impersonating **David Miller** (membe
      - *Email*, *Title*, *Department* and *Location* come from the case; *Manager = Hiring Manager*.
   2. **Look Up Record** Onboarding Case where *Sys ID is trigger ▸ Onboarding Case ▸ Sys ID*.
   3. **Update Record** case: *Joiner User Account* = the new user.
-  4. **If** *case ▸ Training Enrollment is not empty* → **Look Up Record** Course Enrollment by sys_id → **Update Record** *Employee* = the new user.
+  4. **If** *case ▸ Training Enrollment is not empty* → **Look Up Record** Course Enrollment by sys_id → **Update Record** *Employee* = the new user. *First build. Now Try → subflow "Link Enrollment to Employee"; see "Fixing TC-07"*.
 - **Why two flows:**
   - Flow 1 is long-running because it waits for six tasks; account creation is a short reaction to one task closing.
   - Keeping them separate means IT can close its task in any order relative to the others.
@@ -182,11 +182,56 @@ I ran all three tests in the browser while impersonating **David Miller** (membe
     - Each run creates the case correctly (Stage In Progress, Hiring Manager David Miller) and creates the L&D task.
     - The flow then errors with *"Scope does not have create access to table x_2186817_employ_0_course_enrollment"*.
     - The other five parallel paths never create their tasks.
-- **Evidence:** `screenshots/flow2-create-joiner-account.jpg`, `screenshots/tc07-flow-contexts-error.jpg`, `screenshots/tc07-portal-priya-nair.jpg`, `screenshots/etcms-enrollment-application-access.jpg`
+- **Evidence (first build):** `screenshots/flow2-create-joiner-account.jpg`, `screenshots/tc07-flow-contexts-error.jpg`, `screenshots/tc07-portal-priya-nair.jpg`, `screenshots/etcms-enrollment-application-access.jpg`
+
+### Fixing TC-07: ETCMS writes moved into ETCMS-scoped subflows
+- **Root cause, as far as it could be pinned down:** Flow Designer would not let a flow in the NJO scope create or update ETCMS Course Enrollment records, whatever the table-level settings said.
+  - Final check, at the user's request: *Accessible from* (`sys_db_object.access`) is **All application scopes** on Course Enrollment, Training Session and both NJO tables. `sys_user` is a global table with create and update allowed. So *Accessible from* was **not** the cause.
+  - Together with the five failed attempts in the issue table (Can create / Can update, explicit `sys_scope_privilege` rows, cache flush, portal vs REST, re-saving in the ETCMS scope), every documented cross-scope setting was already correct.
+  - The reads in the same branch (Look Up Training Session) worked. Only writes were refused: create in Flow 1, and update in Flow 2, which failed the same way with *"Scope does not have write access to table x_2186817_employ_0_course_enrollment"* the first time an IT task was closed.
+  - **Conclusion:** I could not find a no-code switch that lets an NJO-scoped flow write to the ETCMS table on this instance. The reliable design is for **the scope that owns the table to do the write**, which is also the cleaner integration contract.
+- **Fix, step 1: subflow "Enroll in Security Awareness"** (ETCMS scope, `sys_hub_flow` `8919ea0e93dc1f10803931697bba10e1`, Run as System user, Accessible from All application scopes, Published).
+  - **Inputs:** *Employee sys_id* and *Session sys_id*, both optional Strings.
+  - **Outputs:** *Enrollment sys_id* and *Enrollment number*.
+  - **Logic:** If no session is given, Look Up the earliest Planned/Open *Information Security Awareness* session (order by Start Date, first record) and Create the Course Enrollment on it. Else, create the enrollment on the given session. Both branches set *Enrollment Status = Enrolled* and finish with **Assign Subflow Outputs**.
+- **Fix, step 2: subflow "Link Enrollment to Employee"** (ETCMS scope, `sys_hub_flow` `b782fec293505f10803931697bba103f`, same settings).
+  - **Inputs:** *Enrollment sys_id* and *Employee sys_id*.
+  - **Logic:** Look Up the Course Enrollment by sys_id, then Update Record with *Employee* = the input.
+- **Fix, step 3: Flow 1 L&D path** (after the L&D task is created and the session is looked up):
+  - **Try:**
+    1. call *Enroll in Security Awareness* (session = lookup ▸ Sys ID);
+    2. Update the case *Training Enrollment* = subflow output *Enrollment sys_id*;
+    3. add the L&D task work note "Enrolled in ETCMS Information Security Awareness: <Enrollment number>".
+  - **Catch** (*and if error occurs*): work note on the L&D task: "ETCMS Security Awareness enrollment failed … enrol the joiner manually in ETCMS. Other onboarding tasks are not affected."
+  - Then wait for the L&D task as before.
+- **Fix, step 4: Flow 2.** The direct Look Up and Update of the enrollment were replaced:
+  - **Try:** call *Link Enrollment to Employee* (enrollment = case ▸ Training Enrollment, employee = new user ▸ Sys ID).
+  - **Catch:** a work note on the IT account task telling IT to set the Employee manually.
+- **Option 2 safety net:** the Try blocks mean an ETCMS failure no longer ends the parallel block. The other five paths keep going and the failure is visible on the task.
+  - **Deviation from the brief:** the brief asked for the note on the *case*, but the Onboarding Case table does not extend Task and has no work-notes journal. The note goes on the L&D task, or in Flow 2 on the IT task. Those records are auditable and are the ones the responsible team works from.
+- **Why String sys_id inputs instead of Reference inputs:** the subflow-input *Reference* table picker is a virtualized list of every table with no search, so `sys_user` could not be selected reliably under automation. Strings carrying sys_ids work for both Create and Update (a reference field accepts a sys_id), and Flow Designer converts reference pills to their sys_id when they are dropped into a String input.
+- **Subflows are ETCMS artifacts:** they are captured in the ETCMS *Default* update set, not in NJO v1.0. NJO depends on ETCMS anyway; the subflows are ETCMS's published interface for "enrol a user in Security Awareness", which another app could reuse.
+- **Known gap:** the old Create Record set *Enrollment Date* = the flow run date. A subflow has no trigger date pill, so the new enrollments have an empty Enrollment Date. It does not affect TC-07 to TC-11; I note it for Phase 5 polish. Options: add a Date/Time input that NJO fills with its run date, or an ETCMS field default.
+- **Re-test (2026-11-03), all passed.** The test data from the failed runs was deleted first, as approved: NJO0001002–NJO0001007 with their tasks, REQ0010002–REQ0010006 with their RITMs, and the waiting Flow 1 test context was cancelled.
+  - **TC-07:** REQ0010007 for Priya Nair via the Service Catalog API as David Miller.
+    - Case NJO0001008 got **6 tasks**, each with its group and due date: HR 11-08, IT equipment 11-10, IT account 11-11, Facilities desk and badge 11-12, L&D 11-18.
+    - The subflow created **ENR0001021** on *Security Awareness Nov 2026*. The case links to it, and the L&D task has the ENR work note.
+  - **TC-08:** REQ0010008 for Arjun Rao (equipment None, no desk). Case NJO0001009 got **4 tasks** (HR, IT account, Facilities badge, L&D) and **ENR0001022**.
+  - **TC-09, first attempt (before the Flow 2 fix):** closing Priya's IT account task created `priya.nair` and set *Joiner User Account*. The enrollment update then failed with the *write access* error above. That led to the second subflow.
+    - Priya's ENR0001021 Employee was then set once by hand as a test-data repair. The flow cannot re-run for her because the user already exists.
+  - **TC-09, re-run on Arjun's IT task:** the flow COMPLETEd. `arjun.rao` was created, *Joiner User Account* was set, and the subflow set ENR0001022 *Employee* = Arjun Rao.
+  - **TC-10:** after Priya's other five tasks were closed, Flow 1 COMPLETEd. The case is **Ready for Day One** with a Ready Date, and the email "Everything is ready for Priya Nair on 2026-11-13" to `david.miller@example.com` is in `sys_email` as *send-ready*.
+  - **TC-11:** the *Security Awareness Nov 2026* session's Course Enrollments related list shows ENR0001021 Priya Nair and ENR0001022 Arjun Rao, both Enrolled.
+- **Evidence (fix):** `screenshots/etcms-subflow-enroll-in-security-awareness.jpg`, `screenshots/etcms-subflow-link-enrollment-to-employee.jpg`, `screenshots/flow1-ld-path-try-subflow.jpg`, `screenshots/flow2-try-link-enrollment.jpg`, `screenshots/tc07-flow1-execution-top.jpg`, `screenshots/tc07-flow1-execution-ld-try.jpg`, `screenshots/tc08-tc09-case-arjun-rao.jpg`, `screenshots/tc09-flow2-execution.jpg`, `screenshots/tc10-case-ready-for-day-one.jpg`, `screenshots/tc10-day-one-email.jpg`, `screenshots/tc11-etcms-session-enrollments.jpg`
 
 | Date | Issue | Resolution | Learning |
 |------|-------|------------|----------|
-| 2026-11-03 | **Open (TC-07):** Flow 1's Create Record on ETCMS Course Enrollment fails with "Scope does not have create access" | **Not resolved.** Tried, in order: table *Can create* / *Can update* = true (the form shows both ticked); explicit `sys_scope_privilege` create/read/write Allowed from NJO to ETCMS; a `cache.do` flush; submitting through the portal instead of the REST API (rules out the `sn_sc` originating scope); toggling *Can create* off and on through the table form in the ETCMS scope. The flow runs as `system` in scope `x_2186817_njo`, and the read on *Training Session* in the same branch succeeds | Needs a different approach (see the options in the Phase 3 report) |
+| 2026-11-03 | **TC-07:** Flow 1's Create Record on ETCMS Course Enrollment fails with "Scope does not have create access" | **Resolved by redesign** (see "Fixing TC-07"): the create and the later update now run in ETCMS-scoped subflows that NJO calls inside Try. A sixth check confirmed *Accessible from = All application scopes* on every table involved, so that was not the cause. Failed attempts, in order: table *Can create* / *Can update* = true (the form shows both ticked); explicit `sys_scope_privilege` create/read/write Allowed from NJO to ETCMS; a `cache.do` flush; submitting through the portal instead of the REST API (rules out the `sn_sc` originating scope); toggling *Can create* off and on through the table form in the ETCMS scope. The flow runs as `system` in scope `x_2186817_njo`, and the read on *Training Session* in the same branch succeeds | Table-level access and scope privileges were not enough for a Flow Designer write from another scope on this instance. Let the owning scope do the write and expose it as a subflow |
+| 2026-11-03 | After the TC-07 fix, Flow 2 failed with "Scope does not have **write** access to table x_2186817_employ_0_course_enrollment" | Second ETCMS subflow *Link Enrollment to Employee*, called from Flow 2 inside Try | Create and update are refused the same way. Any cross-app write needs the same pattern |
+| 2026-11-03 | Moving existing steps into a new Try block by drag-and-drop did not work under automation | Deleted the old case/task updates and rebuilt them inside the Try (two Update Record steps) | Add the Try first, then build inside it |
+| 2026-11-03 | The case form showed *Requested Item* and *Training Enrollment* twice | Two duplicate `sys_ui_element` rows from the field adds were deleted, then `cache.do` | Form layout rows are cached; flush after removing them |
+| 2026-11-03 | The failure note was meant for the case, but the Onboarding Case has no work-notes field | Put the note on the L&D task (Flow 1) or the IT task (Flow 2) | Only Task-extended tables carry the journal fields |
+| 2026-11-03 | Opening a second Workflow Studio record in the same browser tab showed a blank page; many open Studio tabs froze Chrome | One fresh tab per Studio record, closing old ones | Workflow Studio is heavy; keep few tabs open |
 | 2026-11-03 | An error in one parallel path stops the whole *Do the following in Parallel* block | Matters for the fix: the ETCMS step should not take the other teams' tasks down with it | Parallel paths share one flow context; an unhandled error ends all of them |
 | 2026-11-03 | Dot-walked record pills (trigger ▸ task ▸ Onboarding Case) are greyed out as the *Record* input of Update Record | Added a **Look Up Record** on Onboarding Case by sys_id and updated its output instead | Update Record needs a record pill produced by a step, not a dot-walk |
 | 2026-11-03 | Pill transforms were not offered when clicking a pill | They appear as an **f(x)** icon when hovering over a dropped pill | Transforms are per pill and can be chained (Split → Get First Item) |
