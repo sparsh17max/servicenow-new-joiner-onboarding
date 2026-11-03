@@ -48,3 +48,83 @@ Format for each entry: **what** I implemented, **why**, and **what I learned**.
 | 2026-11-03 | Form, list and related-list layouts created as `sys_ui_section`/`sys_ui_list`/`sys_ui_related_list` records via the Table API are **not** in the NJO v1.0 update set (58 records captured: tables, dictionary, labels, choices, numbers, roles, menu, modules) | Open item for Step 15: re-save each layout once through *Configure → Form Layout / List Layout / Related Lists* in the app scope so the platform writes the layout update records | Layout capture happens when the UI saves the whole layout, not on each element insert |
 | 2026-11-03 | Groups, memberships and role grants are not in the update set | Expected — they are data, not application files. Will travel with the app as an XML export / documented in `docs/sample-data.md` (Step 15) | Update sets capture configuration, not data |
 | 2026-11-03 | Inside the browser the current application was still *Employee Training and Certification Management* (banner on the Onboarding Task table record) | Only test data (TC-01/02 records) was created from the browser; all configuration came from the API session scoped to NJO | Current application is per session; check the banner before editing metadata in the UI |
+
+## 2026-11-03 — Phase 2, Step 5: HR Services category and the "Onboard a New Joiner" catalog item
+- **What:** Catalog category **HR Services** (Service Catalog). Catalog item **Onboard a New Joiner** (`sc_cat_item` `0a63428293d81f10803931697bba1029`):
+  - Short description: "Request accounts, equipment, workspace and training for a new starter".
+  - HTML description that explains the process and links to the KB article *Your first week at Novatrix* (`/sp?id=kb_article_view&sysparm_article=KB0010001`).
+  - Availability *Desktop Only*, which turns classic mobile off; the Service Portal shows every active item in a portal catalog.
+  - *Hide Quantity*, *Hide 'Add to Cart'* and *Hide Delivery time* are on.
+  - Fulfilment is left empty for Phase 3 (no workflow, no flow).
+- **Why:** One item with a reusable variable set is the CSA pattern for a service request. It produces an RITM that Phase 3's flow can read with *Get Catalog Variables*. A catalog item fits better than a record producer here: the request needs fulfilment orchestration and an RITM audit trail, not just one target record.
+- **Learned:** The Service Portal reads the `_v2` display flags (`no_quantity_v2`, `no_cart_v2`, `no_delivery_time_v2`). The older `no_quantity` / `no_cart` flags only affect the classic UI, so the first portal render still showed *Quantity* and *Delivery Time: 2 Days*. Without a flow or workflow, an item falls back to its **execution plan** (`delivery_plan` = DEFAULT). That plan created two catalog tasks for the TC-05 request (*Assess or Scope Task*, *Provide requested service*). A Flow Designer flow attached in Phase 3 takes precedence over the execution plan.
+- **Evidence:** `screenshots/tc04-portal-item-david-miller.jpg`
+
+## 2026-11-03 — Phase 2, Step 6: Variable set "New Joiner Details" and the catalog UI policy
+- **What:**
+  - Single-row variable set **New Joiner Details** (`new_joiner_details`) with 10 variables in the guide's order:
+    - `joiner_name`: Single Line Text, mandatory
+    - `joiner_email`: Email, mandatory
+    - `start_date`: Date, mandatory
+    - `job_title`: Single Line Text
+    - `department`: Reference → `cmn_department`
+    - `location`: Reference → `cmn_location`
+    - `equipment`: Select Box with the same values as the table choice (`laptop_standard` as default, `laptop_developer`, `desktop`, `none`)
+    - `needs_desk` and `needs_training`: CheckBox, default checked
+    - `notes`: Multi Line Text
+  - The variable set is linked to the item (`io_set_item`).
+  - Catalog UI policy **Equipment none - no equipment task message**, on the variable set: condition `equipment is None`, On load, Reverse if false, **Run on All UIs**.
+  - The policy has one action on `equipment`: **Field message type = Info**, **Field message = "No equipment task will be created."**, everything else *Leave alone*.
+- **Why:** The variable set mirrors the Onboarding Case columns one-to-one, so the Phase 3 *Create Record* step is a straight mapping. The same set can be reused later by an offboarding or contractor item. The policy lives on the set rather than the item, so it travels with the variables.
+- **No-code decision:** Classically, the guide's info message would be `g_form.showFieldMsg()` in a catalog client script. On Zurich, UI policy actions have **Field message / Field message type**, so the message is a plain UI policy action. No script is involved and *Run scripts* stays off.
+- **Learned:**
+  - When checkbox variables follow each other, the platform groups them under an automatic **Options** label. That label is a synthetic `IO:` container, not a variable.
+  - `catalog_conditions` uses the `IO:<variable sys_id>=value^EQ` encoding.
+  - Catalog UI policies default to `ui_type = Desktop`, which the Service Portal ignores.
+  - The issue table below covers the action-linking problem.
+- **Evidence:** `screenshots/catalog-ui-policy-equipment-none.jpg`, `screenshots/catalog-ui-policy-action-field-message.jpg`
+
+## 2026-11-03 — Phase 2, Step 7: HR Knowledge base and "Your first week at Novatrix"
+- **What:**
+  - Knowledge base **HR Knowledge**, owned by Beth Anglin, with publish flow *Knowledge - Instant Publish* and retire flow *Knowledge - Instant Retire*. It has one category, **Onboarding**.
+  - Article **KB0010001 "Your first week at Novatrix"**, authored by Beth Anglin. Sections: before day one, day one, first week, who to contact. Keywords: *onboarding, new joiner, first week, day one, induction*.
+  - The article was created as Draft and published with the form's **Publish** button, so the instant-publish flow made the state change.
+  - Access:
+    - *Can read*: **Any User** / *Any user for KB*
+    - *Cannot read*: Guest User
+    - *Can contribute*: only the new user criteria **NJO - Onboarding HR group**
+  - **HR Knowledge is linked to the Service Portal** (`m2m_sp_portal_knowledge_base`, portal `sp`).
+- **Why:** Hiring managers share the link with the joiner. Everyone in the company can read onboarding guidance, but only HR maintains it.
+- **Learned:**
+  - On Zurich, `glide.knowman.block_access_with_no_user_criteria = true`, so a KB with no *Can read* criteria is invisible to everyone except admins.
+  - Inserting a KB automatically adds default criteria: *Can read* Any User, *Cannot read* / *Cannot contribute* Guest User, and **Can contribute "Has atleast one role apart from snc_internal KB"**.
+  - That last default would let any fulfiller or hiring manager edit HR articles, so I removed it, leaving *NJO - Onboarding HR group*.
+  - Knowledge access on a portal has **three** gates: the record ACL, the KB's user criteria, and whether the KB is linked to that portal.
+- **Evidence:** `screenshots/tc06-kb-article-on-portal.jpg`, `screenshots/tc06-portal-search.jpg`, `screenshots/tc06-first-run-insufficient-privileges.jpg`
+
+## 2026-11-03 — Phase 2 test cases (TC-04 to TC-06, all passed)
+I ran all three tests in the browser while impersonating **David Miller** (member of *Hiring Managers*, so he has `x_2186817_njo.hiring_manager`). I ended the impersonation afterwards.
+- **TC-04:**
+  - `/sp?id=sc_cat_item&sys_id=0a63428293d81f10803931697bba1029` renders *Service Catalog › HR Services › Onboard a New Joiner* with the description, the KB link and all 10 variables.
+  - Clicking **Request** on the empty form is blocked with "The following fields are incomplete: Joiner name, Personal email, Start date".
+  - Equipment = None shows the info message; switching to Standard laptop removes it.
+- **TC-05:**
+  - Submitted Rohan Mehta (rohan.mehta@example.com, start 2026-11-17, Account Executive, Sales, Standard laptop, desk and training checked).
+  - This created **REQ0010001 / RITM0010001**, with Requested for and Opened by both David Miller.
+  - All 10 variable values are stored on the RITM (`sc_item_option_mtom`). No Onboarding Case exists yet; that comes in Phase 3.
+- **TC-06:**
+  - The first run failed with "You do not have sufficient privileges to access this knowledge item" (see the issue table).
+  - After I linked HR Knowledge to the portal, KB0010001 opened for David Miller from the item's link (*Knowledge › HR Knowledge › Onboarding*).
+  - Portal search for "first week" returns both the article and the catalog item.
+- **Evidence:** `screenshots/tc04-portal-item-david-miller.jpg`, `screenshots/tc04-mandatory-enforced.jpg`, `screenshots/tc05-request-submitted-req0010001.jpg`, `screenshots/tc05-ritm-variables.jpg`, `screenshots/tc06-kb-article-on-portal.jpg`
+
+| Date | Issue | Resolution | Learning |
+|------|-------|------------|----------|
+| 2026-11-03 | A catalog UI policy action created through the Table API saved with an empty *Variable name*. PATCHing `catalog_variable` / `variable` / `ui_policy` was silently blanked again | Deleted that action (created minutes earlier, referenced by nothing) and recreated it from the policy's *Catalog UI Policy Actions* related list in the form. The related-list context sets `ui_policy` | The `catalog_variable` choice list and the `ui_policy` link are only populated by the form, so create UI policy actions in the UI |
+| 2026-11-03 | The info message did not appear on the portal even though the policy loaded | Two causes: the action was orphaned (row above) and the policy had `ui_type = Desktop`. Fixed by setting **Run on = All** | Check *Run on* for every catalog UI policy meant for the Service Portal |
+| 2026-11-03 | The portal still showed *Quantity* and *Delivery Time: 2 Days* | Set `no_quantity_v2`, `no_cart_v2`, `no_delivery_time_v2` | The portal uses the v2 display flags |
+| 2026-11-03 | TC-06 first run: "You do not have sufficient privileges to access this knowledge item" for David Miller, although the Table API returned the article for him | Linked HR Knowledge to portal `sp` (`m2m_sp_portal_knowledge_base`) | Portals only serve knowledge bases that are linked to them |
+| 2026-11-03 | The KB insert added a default *Can contribute* criteria for anyone with a role | Removed it; only *NJO - Onboarding HR group* can contribute | Review the auto-created KB criteria after creating a knowledge base |
+| 2026-11-03 | Test request REQ0010001 created two catalog tasks from the DEFAULT execution plan | Left them as test data. The Phase 3 flow replaces the execution plan for new requests | Having no fulfilment configured does not mean nothing runs: the execution plan is the fallback |
+| 2026-11-03 | Reloading the portal form was blocked by a *Leave site?* prompt for the unsaved test form | Cleared `onbeforeunload` before reloading | Portal forms register an unsaved-changes guard |
+| 2026-11-03 | Catalog/KB configuration in the browser was read-only because the browser session's current application was ETCMS | Switched the browser session to *New Joiner Onboarding* (`PUT /api/now/ui/concoursepicker/application`); NJO v1.0 became current | Each session (API and browser) has its own current application |

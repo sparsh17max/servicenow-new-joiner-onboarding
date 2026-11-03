@@ -23,7 +23,7 @@ Why the task extends Task but the case does not, and every field, is in [docs/da
 | Phase | Scope | Status |
 |-------|-------|--------|
 | 1 | Application, tables, groups, roles | ✅ Complete — TC-01…03 passed |
-| 2 | Service Catalog item, variable set, Knowledge | ⬜ |
+| 2 | Service Catalog item, variable set, Knowledge | ✅ Complete — TC-04…06 passed |
 | 3 | Flow Designer orchestration + ETCMS integration | ⬜ |
 | 4 | SLAs, notifications, ACLs | ⬜ |
 | 5 | Import Set, dashboard, Update Set export, portfolio docs | ⬜ |
@@ -35,6 +35,10 @@ Why the task extends Task but the case does not, and every field, is in [docs/da
 | Onboarding Case with auto-number and default stage | Onboarding Tasks related list on the case |
 | ![Extends Task](screenshots/onboarding-task-extends-task.jpg) | ![Inherited roles](screenshots/tc03-inherited-roles.jpg) |
 | Onboarding Task extends Task | Roles inherited through groups |
+| ![Portal item](screenshots/tc04-portal-item-david-miller.jpg) | ![UI policy](screenshots/catalog-ui-policy-equipment-none.jpg) |
+| *Onboard a New Joiner* on the Service Portal | No-code catalog UI policy message |
+| ![RITM variables](screenshots/tc05-ritm-variables.jpg) | ![KB article](screenshots/tc06-kb-article-on-portal.jpg) |
+| RITM with the variable set values | *Your first week at Novatrix* on the portal |
 
 ## Documentation
 - [Development log](docs/development-log.md) — what / why / learned for each step, with issue tables

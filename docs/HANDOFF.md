@@ -22,8 +22,22 @@ CSA-focused: configure via UI / Table API records only. No business rules, clien
 | Group Onboarding - HR / IT | `229b390293981f10803931697bba10c2` / `48ab7d4293981f10803931697bba1055` |
 | Group Onboarding - Facilities / L&D | `ddab7d4293981f10803931697bba10d6` / `72abbd4293981f10803931697bba10ab` |
 | Group Hiring Managers | `efabfd4293981f10803931697bba1023` |
+| Catalog category HR Services | `3d03024293d81f10803931697bba100c` |
+| Catalog item Onboard a New Joiner | `0a63428293d81f10803931697bba1029` |
+| Variable set New Joiner Details | `3a434e4293d81f10803931697bba100f` |
+| Variables joiner_name / joiner_email / start_date | `5f434e4293d81f10803931697bba101a` / `b3434e4293d81f10803931697bba1090` / `88534e4293d81f10803931697bba10b6` |
+| Variables job_title / department / location | `14534e4293d81f10803931697bba10c4` / `e0534e4293d81f10803931697bba10f7` / `38538e4293d81f10803931697bba1011` |
+| Variables equipment / needs_desk / needs_training / notes | `8d538e4293d81f10803931697bba1050` / `ad538e4293d81f10803931697bba1061` / `35538e4293d81f10803931697bba10a1` / `c2538e4293d81f10803931697bba10d4` |
+| Catalog UI policy (+ action) | `6373428293d81f10803931697bba10de` (`a7a40a0693d81f10803931697bba107b`) |
+| KB HR Knowledge / category Onboarding | `ee03824293d81f10803931697bba107f` / `f2138a8a93981f10803931697bba104a` |
+| Article KB0010001 | `df13064293d81f10803931697bba10ea` |
+| User criteria NJO - Onboarding HR group | `8a03824293d81f10803931697bba1077` |
 
 ## Open items
 - **Step 15:** re-save the form, list and related-list layouts of both tables once through *Configure → Form Layout / List Layout / Related Lists* (app scope, NJO v1.0 current) so they are captured; they were created via the Table API and are not yet in the update set.
 - Groups, members and role grants are data — not captured by the update set.
-- Test data: NJO0001001 (Ananya Iyer) and NJOT0001001 from TC-01/02.
+- Test data:
+  - NJO0001001 (Ananya Iyer) and NJOT0001001 from TC-01/02.
+  - REQ0010001 / RITM0010001 (Rohan Mehta, requested by David Miller) from TC-05, plus its two DEFAULT-execution-plan catalog tasks SCTASK0010001/2.
+- Phase 3: attaching the flow to the item replaces the DEFAULT execution plan. Make UI configuration changes in the browser with the current application set to New Joiner Onboarding (the browser session was switched on 2026-11-03).
+- The KB, KB category and article are data and are not in the update set. The portal link, user criteria and KB criteria mappings are captured.
