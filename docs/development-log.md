@@ -384,3 +384,29 @@ I ran all three tests in the browser while impersonating **David Miller** (membe
 |------|-------|------------|----------|
 | 2026-11-03 | Reports cannot compute Ready Date − Created | Function field *Days to Ready* with `glidefunction:divide(datediff(…), 86400)` | Function fields are database expressions configured in the dictionary, not scripts |
 | 2026-11-03 | Imported cases have no tasks | Expected: Flow 1 is triggered by the catalog item, not by case insert | A table import bypasses catalog fulfilment |
+
+## 2026-11-04 — Phase 5, Step 15: Update set NJO v1.0 completed and exported
+- **Audit first:** I compared every NJO-scoped record with the update set.
+  - Layouts: the lists, related lists and case form had been re-saved on 11-03. The **task form layout** was still missing. Form Designer only saves a dirty layout, so I switched the second section 1 → 2 → 1 columns with a save each time. The final layout is unchanged.
+  - Five NJO update records sat in *Default*: the **application record `sys_app`** and four **cross-scope privileges** (RITM write, ETCMS training session read, `sys_user` create, ScopedGlideElement). Without `sys_app` a target instance cannot create the scope. All five were moved to NJO v1.0 by changing *Update set* on the Customer Update record.
+  - The **`par_dashboard` header** is never captured (also true of the ETCMS dashboard), while its tab, canvas, widgets and permission are. It ships as an XML unload, `update-sets/par_dashboard_onboarding_operations.xml`.
+- **Completed and exported:** 179 customer updates, all scope `x_2186817_njo`, nothing from other scopes. State → Complete, *Export to XML* → `update-sets/NJO-v1.0.xml` (1.1 MB). I grepped the file for credentials: the only matches are empty password fields in the data-source schema.
+- **Learned:**
+  - **Table API writes never create update records on this PDI**, even from the browser session's page context with the right application and update set selected. Form, list and designer saves do. That is why the REST-built layouts needed a UI re-save.
+  - Three of the five Customer Update records returned **403 even with `security_admin` elevated**. Their form showed *"This record is in the Global application, but New Joiner Onboarding is the current application"*: the platform wrote them in *Default*, so the update records belong to Global even though they describe NJO records. The fix was to switch the current application to Global, move them, and switch back to NJO / NJO v1.0. Elevation was not the cause.
+  - *Export to XML* creates a temporary Retrieved Update Set and deletes it once the file is served.
+- **What an update set does not carry:** data (cases, tasks, users, groups and members, role grants, the KB article, import rows), Table API changes, the dashboard header, and other scopes' changes (the ETCMS subflows). See `update-sets/README.md`.
+
+## 2026-11-04 — Phase 5 test case TC-19 (passed) and Step 16 portfolio
+- **TC-19:**
+  - `NJO-v1.0.xml` was imported back with *Import Update Set from XML* and previewed: **Total 179, Collisions 0, preview problems 0** (Inserted 0 / Updated 177 / Deleted 2, because every record exists on the source instance). It was left uncommitted.
+  - Limitation: no second instance was available, so a preview against an instance without the scope has not been run.
+- **Step 16:** added `docs/business-requirements.md` (BR-01…14 mapped to build and tests), `docs/architecture.md` (ER and process diagrams, flows, ETCMS integration, security model) and `update-sets/README.md` (install steps, captured / not captured). The README got Phase 5 screenshots, Install, Related project and Known limitations sections. The ETCMS README got a matching *Related project* section ("NJO enrols joiners into ETCMS").
+- **Evidence:** `screenshots/tc19-update-set-preview.jpg`
+
+| Date | Issue | Resolution | Learning |
+|------|-------|------------|----------|
+| 2026-11-04 | `sys_app` and four cross-scope privileges were in *Default* | Moved to NJO v1.0 | Check *Default* for an app's records before completing its update set |
+| 2026-11-04 | Moving three Customer Updates returned 403, even as security_admin | Switched the current application to Global (the update records' own scope), moved them, switched back | An update record's scope comes from the update set it was first written to |
+| 2026-11-04 | Dashboard header not in the update set | XML unload shipped next to the update set | Platform Analytics dashboards need a separate export of `par_dashboard` |
+| 2026-11-04 | Form Designer Save is hidden for an unchanged layout | Make a change and revert it, with a save each time | Capture needs a real save, not an unchanged one |

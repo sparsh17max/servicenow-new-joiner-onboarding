@@ -50,6 +50,7 @@ CSA-focused: configure via UI / Table API records only. No business rules, clien
 | Reports by Stage / Open tasks / SLA breaches | `85c6c41a93d85f10803931697bba10b4` / `1dc6c81a93d85f10803931697bba1028` / `35c6089693d85f10803931697bba104f` |
 | Reports Avg days to Ready / Upcoming starts | `86c6c81a93d85f10803931697bba1065` / `52c6c81a93d85f10803931697bba108d` |
 | Dashboard *Onboarding Operations* (`par_dashboard`) | `9047085a93d85f10803931697bba101a` |
+| Update set *NJO v1.0* | **Complete**, 179 updates, exported 2026-11-04 |
 
 ACLs (9, NJO scope): see `screenshots/acls-njo-tables.jpg` and the Step 12 table in the dev log. Creating or editing them needs *Elevate role → security_admin* in the browser session.
 
@@ -71,11 +72,8 @@ An NJO-scoped flow cannot create or update ETCMS Course Enrollment on this insta
 - NJO0001011–25: 15 imported cases (ISET0010001), Stage Requested, no tasks (import bypasses Flow 1). NJO0001011 and NJO0001015 were updated by the coalesced re-import ISET0010002.
 
 ## Open items
-- **Step 15 (in progress, 2026-11-04):**
-  - Done: all layouts are now in NJO v1.0. The task form layout was re-saved through Form Designer (1 → 2 → 1 columns on the second section, so the final layout is unchanged). `sys_app` and the `sc_req_item` write privilege were moved from *Default* into NJO v1.0 (176 records).
-  - **Blocked:** three NJO cross-scope privilege update records are still in *Default*: `sys_scope_privilege_fd717a42…` (ScopedGlideElement), `…ab1366c2…` (ETCMS training_session read) and `…d21232c2…` (sys_user create). Moving them returns 403 and needs *Elevate role → security_admin*. Move them in the list (*Update set* column → NJO v1.0), then complete NJO v1.0, export its XML to `update-sets/` and preview it (TC-19).
-  - Platform Analytics does not record the `par_dashboard` header in update sets (the tab, canvas, 5 widgets and permission are captured). The header ships as an XML unload: `update-sets/par_dashboard_onboarding_operations.xml`. Import it with *Import XML* before or after the update set.
-  - REST writes are never captured, even from the browser session. Only form, list and designer saves are.
+- **Step 15 done (2026-11-04):** NJO v1.0 is **Complete** (179 updates) and exported to `update-sets/NJO-v1.0.xml`. Any further configuration needs a new update set (for example *NJO v1.1*); do not reopen v1.0. A retrieved copy (`sys_remote_update_set` `a818bede9310df10803931697bba104f`, state Previewed, not committed) remains on the PDI from TC-19 and can be deleted.
+- Customer Update records that the platform wrote to *Default* belong to Global. To move them, switch the current application to Global first (security_admin is not what blocks it).
 - Groups, members and role grants are data — not captured by the update set.
 - Test data:
   - NJO0001001 (Ananya Iyer) and NJOT0001001 from TC-01/02.

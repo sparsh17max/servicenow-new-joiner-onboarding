@@ -26,7 +26,9 @@ Why the task extends Task but the case does not, and every field, is in [docs/da
 | 2 | Service Catalog item, variable set, Knowledge | ✅ Complete — TC-04…06 passed |
 | 3 | Flow Designer orchestration + ETCMS integration | ✅ Complete — TC-07…11 passed (ETCMS writes run in ETCMS-scoped subflows) |
 | 4 | SLAs, notifications, ACLs | ✅ Complete — TC-12…16 passed (no-script ACLs) |
-| 5 | Import Set, dashboard, Update Set export, portfolio docs | 🟡 In progress — TC-17, TC-18 passed; Update Set export and portfolio pending |
+| 5 | Import Set, dashboard, Update Set export, portfolio docs | ✅ Complete — TC-17…19 passed |
+
+All 19 test cases pass.
 
 ## Screenshots
 | | |
@@ -47,13 +49,30 @@ Why the task extends Task but the case does not, and every field, is in [docs/da
 | Business-hours SLAs on an onboarding task | SLA 75% warning and breach emails from the SLA flow |
 | ![David Miller's cases](screenshots/tc14-david-miller-case-list.jpg) | ![No Joiner Email](screenshots/tc16-david-miller-case-no-joiner-email.jpg) |
 | Row ACL: a hiring manager sees only their own cases | Field ACL: Joiner Email hidden from hiring managers |
+| ![Coalesce](screenshots/tc17-transform-history-coalesce.jpg) | ![Dashboard](screenshots/dashboard-onboarding-operations.jpg) |
+| Import, then re-import: 15 inserts, then 2 updates and 13 ignored | *Onboarding Operations* dashboard |
+| ![Update set preview](screenshots/tc19-update-set-preview.jpg) | |
+| *NJO v1.0* retrieved and previewed: 179 updates, 0 problems | |
+
+## Related project
+**NJO enrols joiners into ETCMS.** The [Employee Training and Certification Management](https://github.com/sparsh17max/servicenow-employee-training-management) app owns courses, sessions and enrollments. NJO's L&D path enrols each new joiner in the next *Security Awareness* session, and its IT account flow links that enrollment to the new user. The writes run in two ETCMS-scoped subflows; see [docs/architecture.md](docs/architecture.md#integration-with-etcms).
+
+## Install
+The configuration is the update set [`update-sets/NJO-v1.0.xml`](update-sets/NJO-v1.0.xml), plus one dashboard XML. Steps, and what an update set does and does not carry, are in [update-sets/README.md](update-sets/README.md). Install ETCMS first.
 
 ## Documentation
+- [Business requirements](docs/business-requirements.md) — BR-01…14 mapped to the build and the tests
+- [Architecture](docs/architecture.md) — tables, flows, ETCMS integration, security model
 - [Development log](docs/development-log.md) — what / why / learned for each step, with issue tables
 - [Test cases](docs/test-cases.md) — TC-01…TC-19
 - [Data dictionary](docs/data-dictionary.md)
+- [Sample data](docs/sample-data/) — the joiners spreadsheets for the import set
 - [Changelog](CHANGELOG.md)
 - [Project guide](docs/PROJECT-GUIDE.md)
 
 ## How this was built
-Configuration was applied as Table API records from a local shell (session auth, see [scripts/README.md](scripts/README.md)) with the session scoped to the application and the *NJO v1.0* update set; tests and screenshots were done in the browser.
+Much of the configuration was first applied as Table API records from a local shell (session auth, see [scripts/README.md](scripts/README.md)). Flows, ACLs, reports and the dashboard were built in the browser. Table API writes do not create update records on this instance, so everything created over REST was re-saved in the UI with *NJO v1.0* current before the export. The shell was also used for checks and test evidence.
+
+## Known limitations
+- Enrollments created by the ETCMS subflow have no *Enrollment Date*. A subflow has no trigger-date pill; the fix is a date input on the subflow.
+- The update set preview was run on the source instance only (no second instance available).
