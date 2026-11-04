@@ -21,6 +21,7 @@ Standalone table (does not extend Task). Auto-number `NJO0001001…`.
 | Joiner User Account | `joiner_user_account` | Reference → `sys_user` | Filled by the flow once IT creates the account |
 | Stage | `stage` | Choice (no *None*) | `requested` (default), `in_progress`, `ready_for_day_one`, `closed`, `cancelled` |
 | Ready Date | `ready_date` | Date/Time | Set by the flow when all tasks close |
+| Days to Ready | `days_to_ready` | Integer (function field) | `glidefunction:divide(datediff(ready_date, sys_created_on), 86400)`; evaluated by the database, used by the *Average days to Ready* report (Phase 5) |
 | Notes | `notes` | String (4000) | |
 | Requested Item | `requested_item` | Reference → `sc_req_item` | Added in Phase 3. Set by Flow 1, links the case to the RITM |
 | Training Enrollment | `training_enrollment` | Reference → `x_2186817_employ_0_course_enrollment` | Added in Phase 3. Set by Flow 1 from the ETCMS subflow output; Flow 2 uses it to link the new user |

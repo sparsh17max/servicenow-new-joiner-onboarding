@@ -339,3 +339,48 @@ I ran all three tests in the browser while impersonating **David Miller** (membe
 | 2026-11-03 | The shell session could not be elevated to `security_admin`: no usable REST endpoint (`elevate_roles` accepts only GET) | Elevated in the browser, then inserted the ACL records from that session's page context | Elevation belongs to the interactive session |
 | 2026-11-03 | The ACL Description I wrote was replaced on insert | Kept the generated text | Zurich generates ACL descriptions from roles and condition |
 | 2026-11-03 | The four old Workflow Studio tabs from Phase 3 became unresponsive and could not be closed; new tabs on the same site froze intermittently (screenshot timeouts) | Worked in fresh tabs, read pages with text extraction when screenshots timed out, retried the screenshot | Same-site tabs share a renderer process; a hung Studio tab slows every tab on the instance |
+
+## 2026-11-03 — Phase 5, Step 13: Import Set + Transform Map
+- **Source data:** `docs/sample-data/joiners.xlsx` (15 upcoming joiners: Joiner Name, Joiner Email, Start Date, Department, Job Title, Equipment, Needs Desk, Hiring Manager) and `joiners-v2-two-changes.xlsx` (same rows; Kabir Shah's start date 11-25 → 11-27, Aditya Rao's title *Service Desk Analyst* → *Systems Engineer* and equipment *Desktop* → *Developer laptop*).
+- **Built (all UI / no script):** *System Import Sets → Load Data* with the first file created the import set table **Joiners Import** (`x_2186817_njo_joiners_import`, 8 `u_` string columns) and the Excel data source. Transform map **NJO Joiners to Onboarding Case** (`ae258c16…`), Run business rules on, *Run script* off, all 8 field maps by name:
+
+  | Source | Target | Coalesce | Choice action |
+  |--------|--------|----------|---------------|
+  | u_joiner_email | joiner_email | **true** | — |
+  | u_joiner_name / u_job_title / u_start_date / u_needs_desk | same | — | — |
+  | u_equipment | equipment_needed | — | **reject** (labels *Desktop*, *Standard laptop*, *Developer laptop* match the existing choices; anything else is rejected rather than creating a junk choice) |
+  | u_department | department (ref cmn_department) | — | ignore |
+  | u_hiring_manager | hiring_manager (ref sys_user) | — | ignore |
+
+- **Why:**
+  - Coalesce on Joiner Email: the email is the one natural key a joiner has before a user account exists. With a coalesce field the transform looks up the target first and updates instead of inserting.
+  - Reference fields resolve by display value (department name, user name), so no lookup script is needed. *Ignore* on references means an unknown name leaves the field empty instead of creating a stub department or user.
+  - The field-map script boxes contain only the platform's default template; *Use source script* is off on every map.
+- **Learned:** an import creates cases directly in the table, not through the catalog, so Flow 1 (triggered by the catalog item) does not run and the imported cases have no tasks. That is the intended behaviour for a bulk backlog load; the cases stay at *Requested* until a coordinator works them.
+- **Update set:** the import table dictionary (9 rows) and the transform map are in NJO v1.0. The data sources and import set rows are data.
+
+## 2026-11-03 — Phase 5, Step 14: Reports and the "Onboarding Operations" dashboard
+| Report | Table | Type | Definition |
+|--------|-------|------|-----------|
+| Onboardings by Stage | onboarding_case | Donut | group by Stage |
+| Open tasks by Group | onboarding_task | Bar | Active = true, group by Assignment group |
+| SLA breaches by Group (last 30 days) | task_sla | Bar | Has breached = true, Task ▸ Class = Onboarding Task, Created on Last 30 days, group by Task ▸ Assignment group |
+| Average days to Ready | onboarding_case | Single score | AVG of **Days to Ready**, Ready Date is not empty |
+| Upcoming starts (next 30 days) | onboarding_case | List | Start date between today and 30 days ahead, Stage ≠ Cancelled, sorted by Start date |
+
+- **Days to Ready without a script:** a report cannot subtract two dates, so I added a **function field** *Days to Ready* (integer, `glidefunction:divide(datediff(ready_date, sys_created_on), 86400)`). A function field is evaluated by the database at query time; it is a dictionary setting, not a calculated-value script. The "Calculated value" box shows only the default template and is not used.
+- **Dashboard:** *Onboarding Operations* (`par_dashboard` 9047085a…, Platform Analytics / Next Experience) with the five reports in a 2 × 2 grid and the list full width below.
+- **Learned:**
+  - The SLA report sits on `task_sla`, so filtering by the onboarding table needs the dot-walk *Task ▸ Class*; dot-walked group-by works the same way.
+  - The single score shows **0.01** although the stored integer for NJO0001008 is 0: the average is computed in the database on the un-rounded expression (Priya's case was ready about 18 minutes after it was created).
+- **Update set:** the five reports and the Days to Ready field are in NJO v1.0.
+
+## 2026-11-03 — Phase 5 test cases (TC-17, TC-18 passed)
+- **TC-17:** run 1 (ISET0010001) → 15 inserts, NJO0001011–25. Run 2 (ISET0010002, v2 file) → **2 updates, 13 ignored, 0 inserts, 0 errors**. NJO0001011 Kabir Shah now starts 2026-11-27 and NJO0001015 Aditya Rao is *Systems Engineer* / *Developer laptop* (both `sys_mod_count` 1). The 19 cases have 19 distinct joiner emails. Unchanged rows are *ignored*, not *updated*, because the transform skips a coalesced row when no target value would change.
+- **TC-18:** the dashboard shows live data: 19 cases (16 Requested, 2 In Progress, 1 Ready for Day One); open tasks Facilities 3, HR 3, IT 2, L&D 1; 1 SLA breach on Onboarding - IT (the TC-13 test SLA); average days to ready 0.01; 12 upcoming starts.
+- **Evidence:** `screenshots/tc17-imported-cases.jpg`, `screenshots/tc17-transform-history-coalesce.jpg`, `screenshots/dashboard-onboarding-operations.jpg`
+
+| Date | Issue | Resolution | Learning |
+|------|-------|------------|----------|
+| 2026-11-03 | Reports cannot compute Ready Date − Created | Function field *Days to Ready* with `glidefunction:divide(datediff(…), 86400)` | Function fields are database expressions configured in the dictionary, not scripts |
+| 2026-11-03 | Imported cases have no tasks | Expected: Flow 1 is triggered by the catalog item, not by case insert | A table import bypasses catalog fulfilment |

@@ -1,4 +1,4 @@
-# Project handoff — NJO (as of 2026-11-03)
+# Project handoff — NJO (as of 2026-11-04)
 
 ## Links
 - PDI: https://dev407572.service-now.com (Zurich), same instance as ETCMS. Login is the owner's; credentials only in the local `.env`.
@@ -44,6 +44,12 @@ CSA-focused: configure via UI / Table API records only. No business rules, clien
 | Notifications assigned-to-group / SLA 75% / SLA breached | `ab68ab8293d45f10803931697bba10ff` / `73682b0e93d45f10803931697bba1075` / `c0782b0e93d45f10803931697bba10b9` |
 | Module *Onboarding Task SLAs* | `8849ef4e93d45f10803931697bba1053` |
 | Related list (task form, Task SLAs) | `9839270e93d45f10803931697bba1016` |
+| Import set table *Joiners Import* | `x_2186817_njo_joiners_import` |
+| Transform map *NJO Joiners to Onboarding Case* | `ae258c1693d85f10803931697bba105f` |
+| Data sources joiners.xlsx / joiners-v2 | `7f05c01693d85f10803931697bba10bd` / `3f2608d693d85f10803931697bba10db` |
+| Reports by Stage / Open tasks / SLA breaches | `85c6c41a93d85f10803931697bba10b4` / `1dc6c81a93d85f10803931697bba1028` / `35c6089693d85f10803931697bba104f` |
+| Reports Avg days to Ready / Upcoming starts | `86c6c81a93d85f10803931697bba1065` / `52c6c81a93d85f10803931697bba108d` |
+| Dashboard *Onboarding Operations* (`par_dashboard`) | `9047085a93d85f10803931697bba101a` |
 
 ACLs (9, NJO scope): see `screenshots/acls-njo-tables.jpg` and the Step 12 table in the dev log. Creating or editing them needs *Elevate role → security_admin* in the browser session.
 
@@ -60,6 +66,9 @@ An NJO-scoped flow cannot create or update ETCMS Course Enrollment on this insta
 - NJO0001010 (Meera Shah, REQ0010009, Hiring Manager **Jerrod Bennett**): In Progress, 5 open tasks NJOT0001018–22 with live SLAs; its Flow 1 context is Waiting. NJOT0001019 also carries the breached TEST SLA.
 - Arjun's NJOT0001015/17 got retroactive SLAs after a work-note update.
 - Several demo users (Carol Coughlin, Christen Mitchell, David Loo, Rick Berzle) have Notification = Disabled, so they never appear as email recipients.
+
+### Test data after Phase 5 (Steps 13–14)
+- NJO0001011–25: 15 imported cases (ISET0010001), Stage Requested, no tasks (import bypasses Flow 1). NJO0001011 and NJO0001015 were updated by the coalesced re-import ISET0010002.
 
 ## Open items
 - **Step 15:** re-save the form, list and related-list layouts (including the Phase 4 *Task SLAs* related list on the task form) of both tables once through *Configure → Form Layout / List Layout / Related Lists* (app scope, NJO v1.0 current) so they are captured; they were created via the Table API and are not yet in the update set.

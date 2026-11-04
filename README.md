@@ -26,7 +26,7 @@ Why the task extends Task but the case does not, and every field, is in [docs/da
 | 2 | Service Catalog item, variable set, Knowledge | ✅ Complete — TC-04…06 passed |
 | 3 | Flow Designer orchestration + ETCMS integration | ✅ Complete — TC-07…11 passed (ETCMS writes run in ETCMS-scoped subflows) |
 | 4 | SLAs, notifications, ACLs | ✅ Complete — TC-12…16 passed (no-script ACLs) |
-| 5 | Import Set, dashboard, Update Set export, portfolio docs | ⬜ |
+| 5 | Import Set, dashboard, Update Set export, portfolio docs | 🟡 In progress — TC-17, TC-18 passed; Update Set export and portfolio pending |
 
 ## Screenshots
 | | |
