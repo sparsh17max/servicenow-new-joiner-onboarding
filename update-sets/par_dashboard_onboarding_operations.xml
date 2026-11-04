@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<unload unload_date="2026-11-04 08:25:13">
+<par_dashboard action="INSERT_OR_UPDATE">
+<active>true</active>
+<base_dashboard display_value=""/>
+<certified>false</certified>
+<description>NJO operations view: onboardings by stage, open tasks by group, SLA breaches (last 30 days), average days to Ready and upcoming starts.</description>
+<experience display_value=""/>
+<grid>48</grid>
+<name>Onboarding Operations</name>
+<ready_to_migrate>Not Applicable</ready_to_migrate>
+<sys_class_name>par_dashboard</sys_class_name>
+<sys_created_by>admin</sys_created_by>
+<sys_created_on>2026-11-03 19:57:10</sys_created_on>
+<sys_domain>global</sys_domain>
+<sys_domain_path>/</sys_domain_path>
+<sys_id>9047085a93d85f10803931697bba101a</sys_id>
+<sys_mod_count>7</sys_mod_count>
+<sys_name>Onboarding Operations</sys_name>
+<sys_overrides display_value=""/>
+<sys_package display_value="New Joiner Onboarding" source="x_2186817_njo">a75b354293981f10803931697bba109e</sys_package>
+<sys_policy/>
+<sys_scope display_value="New Joiner Onboarding">a75b354293981f10803931697bba109e</sys_scope>
+<sys_update_name>par_dashboard_9047085a93d85f10803931697bba101a</sys_update_name>
+<sys_updated_by>admin</sys_updated_by>
+<sys_updated_on>2026-11-04 08:22:14</sys_updated_on>
+<sys_ux_app_config display_value=""/>
+<sys_ux_app_route display_value=""/>
+<sys_ux_macroponent display_value=""/>
+<sys_ux_screen display_value=""/>
+<sys_ux_screen_type display_value=""/>
+</par_dashboard>
+</unload>

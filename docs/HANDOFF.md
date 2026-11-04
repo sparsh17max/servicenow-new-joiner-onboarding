@@ -71,7 +71,11 @@ An NJO-scoped flow cannot create or update ETCMS Course Enrollment on this insta
 - NJO0001011–25: 15 imported cases (ISET0010001), Stage Requested, no tasks (import bypasses Flow 1). NJO0001011 and NJO0001015 were updated by the coalesced re-import ISET0010002.
 
 ## Open items
-- **Step 15:** re-save the form, list and related-list layouts (including the Phase 4 *Task SLAs* related list on the task form) of both tables once through *Configure → Form Layout / List Layout / Related Lists* (app scope, NJO v1.0 current) so they are captured; they were created via the Table API and are not yet in the update set.
+- **Step 15 (in progress, 2026-11-04):**
+  - Done: all layouts are now in NJO v1.0. The task form layout was re-saved through Form Designer (1 → 2 → 1 columns on the second section, so the final layout is unchanged). `sys_app` and the `sc_req_item` write privilege were moved from *Default* into NJO v1.0 (176 records).
+  - **Blocked:** three NJO cross-scope privilege update records are still in *Default*: `sys_scope_privilege_fd717a42…` (ScopedGlideElement), `…ab1366c2…` (ETCMS training_session read) and `…d21232c2…` (sys_user create). Moving them returns 403 and needs *Elevate role → security_admin*. Move them in the list (*Update set* column → NJO v1.0), then complete NJO v1.0, export its XML to `update-sets/` and preview it (TC-19).
+  - Platform Analytics does not record the `par_dashboard` header in update sets (the tab, canvas, 5 widgets and permission are captured). The header ships as an XML unload: `update-sets/par_dashboard_onboarding_operations.xml`. Import it with *Import XML* before or after the update set.
+  - REST writes are never captured, even from the browser session. Only form, list and designer saves are.
 - Groups, members and role grants are data — not captured by the update set.
 - Test data:
   - NJO0001001 (Ananya Iyer) and NJOT0001001 from TC-01/02.
