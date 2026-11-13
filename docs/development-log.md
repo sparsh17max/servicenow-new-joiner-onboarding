@@ -43,7 +43,7 @@ Format for each entry: **what** I implemented, **why**, and **what I learned**.
 
 | Date | Issue | Resolution | Learning |
 |------|-------|------------|----------|
-| 2026-11-03 | Session-auth helper reported "login FAILED" although `/login.do` returned 302 | `navpage.do` now redirects to the Next Experience shell, which has no `g_ck`; read `g_ck` from a classic list page (`sys_user_group_list.do`) instead | On Zurich only classic UI16 pages expose `g_ck` in the HTML |
+| 2026-11-03 | Session-auth helper reported "login FAILED" although `/login.do` returned 302 | `navpage.do` now redirects to the Next Experience shell, which has no `g_ck`; read `g_ck` from a classic list page (`sys_user_group_list.do`) instead | On Brazil only classic UI16 pages expose `g_ck` in the HTML |
 | 2026-11-03 | `sysparm_ck` not found on the login page with a `name="sysparm_ck"…value=` pattern | Matched `sysparm_ck"[^>]*value="…"` regardless of attribute order | Don't depend on HTML attribute order when scraping tokens |
 | 2026-11-03 | Form, list and related-list layouts created as `sys_ui_section`/`sys_ui_list`/`sys_ui_related_list` records via the Table API are **not** in the NJO v1.0 update set (58 records captured: tables, dictionary, labels, choices, numbers, roles, menu, modules) | Open item for Step 15: re-save each layout once through *Configure → Form Layout / List Layout / Related Lists* in the app scope so the platform writes the layout update records | Layout capture happens when the UI saves the whole layout, not on each element insert |
 | 2026-11-03 | Groups, memberships and role grants are not in the update set | Expected — they are data, not application files. Will travel with the app as an XML export / documented in `docs/sample-data.md` (Step 15) | Update sets capture configuration, not data |
@@ -76,7 +76,7 @@ Format for each entry: **what** I implemented, **why**, and **what I learned**.
   - Catalog UI policy **Equipment none - no equipment task message**, on the variable set: condition `equipment is None`, On load, Reverse if false, **Run on All UIs**.
   - The policy has one action on `equipment`: **Field message type = Info**, **Field message = "No equipment task will be created."**, everything else *Leave alone*.
 - **Why:** The variable set mirrors the Onboarding Case columns one-to-one, so the Phase 3 *Create Record* step is a straight mapping. The same set can be reused later by an offboarding or contractor item. The policy lives on the set rather than the item, so it travels with the variables.
-- **No-code decision:** Classically, the guide's info message would be `g_form.showFieldMsg()` in a catalog client script. On Zurich, UI policy actions have **Field message / Field message type**, so the message is a plain UI policy action. No script is involved and *Run scripts* stays off.
+- **No-code decision:** Classically, the guide's info message would be `g_form.showFieldMsg()` in a catalog client script. On Brazil, UI policy actions have **Field message / Field message type**, so the message is a plain UI policy action. No script is involved and *Run scripts* stays off.
 - **Learned:**
   - When checkbox variables follow each other, the platform groups them under an automatic **Options** label. That label is a synthetic `IO:` container, not a variable.
   - `catalog_conditions` uses the `IO:<variable sys_id>=value^EQ` encoding.
@@ -96,7 +96,7 @@ Format for each entry: **what** I implemented, **why**, and **what I learned**.
   - **HR Knowledge is linked to the Service Portal** (`m2m_sp_portal_knowledge_base`, portal `sp`).
 - **Why:** Hiring managers share the link with the joiner. Everyone in the company can read onboarding guidance, but only HR maintains it.
 - **Learned:**
-  - On Zurich, `glide.knowman.block_access_with_no_user_criteria = true`, so a KB with no *Can read* criteria is invisible to everyone except admins.
+  - On Brazil, `glide.knowman.block_access_with_no_user_criteria = true`, so a KB with no *Can read* criteria is invisible to everyone except admins.
   - Inserting a KB automatically adds default criteria: *Can read* Any User, *Cannot read* / *Cannot contribute* Guest User, and **Can contribute "Has atleast one role apart from snc_internal KB"**.
   - That last default would let any fulfiller or hiring manager edit HR articles, so I removed it, leaving *NJO - Onboarding HR group*.
   - Knowledge access on a portal has **three** gates: the record ACL, the KB's user criteria, and whether the KB is linked to that portal.
@@ -315,7 +315,7 @@ I ran all three tests in the browser while impersonating **David Miller** (membe
   - Writing to `sys_security_acl` needs the elevated `security_admin` role even for admin. Elevation is per interactive session and I found no REST endpoint to elevate the shell session (`/api/now/ui/user/elevate_roles` accepts only GET), so the ACLs were inserted from the elevated browser session.
   - On insert the platform overwrote my *Description* with a generated summary ("Allow read for records in …, for users with role …, and if the ACL condition (…) evaluates to true"). It is accurate, so I kept it.
   - Defining ACLs on the child table (Onboarding Task) means the parent `task` ACLs no longer apply to it. Evaluation stops at the most specific table that has a matching ACL.
-  - Zurich's message for a record blocked by a read ACL is "Security constraints prevent access to requested page" (older releases said "Record not found"). The list hides the rows without a "rows removed" banner.
+  - Brazil's message for a record blocked by a read ACL is "Security constraints prevent access to requested page" (older releases said "Record not found"). The list hides the rows without a "rows removed" banner.
 - **Evidence:** `screenshots/acls-njo-tables.jpg`, `screenshots/tc14-david-miller-case-list.jpg`, `screenshots/tc14-other-managers-case-blocked.jpg`, `screenshots/tc15-abel-tuter-it-tasks-only.jpg`, `screenshots/tc16-david-miller-case-no-joiner-email.jpg`, `screenshots/tc16-beth-anglin-case-with-joiner-email.jpg`
 
 ## 2026-11-03 — Phase 4 test cases (TC-12 to TC-16, all passed)
@@ -337,7 +337,7 @@ I ran all three tests in the browser while impersonating **David Miller** (membe
 | 2026-11-03 | *Default SLA flow* notifies Assigned to and Assigned to's manager; onboarding tasks are group-assigned with no Assigned to | Own SLA flow with two percentage timers and two Triggered notifications to `task.assignment_group.manager` | The SLA definition's Flow field is where warning/breach behaviour is chosen |
 | 2026-11-03 | Some group members never receive the group notification | Their user record has Notification = Disabled (PDI demo data); the manager and enabled members do receive it | Group expansion respects each user's notification setting |
 | 2026-11-03 | The shell session could not be elevated to `security_admin`: no usable REST endpoint (`elevate_roles` accepts only GET) | Elevated in the browser, then inserted the ACL records from that session's page context | Elevation belongs to the interactive session |
-| 2026-11-03 | The ACL Description I wrote was replaced on insert | Kept the generated text | Zurich generates ACL descriptions from roles and condition |
+| 2026-11-03 | The ACL Description I wrote was replaced on insert | Kept the generated text | Brazil generates ACL descriptions from roles and condition |
 | 2026-11-03 | The four old Workflow Studio tabs from Phase 3 became unresponsive and could not be closed; new tabs on the same site froze intermittently (screenshot timeouts) | Worked in fresh tabs, read pages with text extraction when screenshots timed out, retried the screenshot | Same-site tabs share a renderer process; a hung Studio tab slows every tab on the instance |
 
 ## 2026-11-03 — Phase 5, Step 13: Import Set + Transform Map
@@ -410,3 +410,14 @@ I ran all three tests in the browser while impersonating **David Miller** (membe
 | 2026-11-04 | Moving three Customer Updates returned 403, even as security_admin | Switched the current application to Global (the update records' own scope), moved them, switched back | An update record's scope comes from the update set it was first written to |
 | 2026-11-04 | Dashboard header not in the update set | XML unload shipped next to the update set | Platform Analytics dashboards need a separate export of `par_dashboard` |
 | 2026-11-04 | Form Designer Save is hidden for an unchanged layout | Make a change and revert it, with a save each time | Capture needs a real save, not an unchanged one |
+
+## 2026-11-13 — Enrollment Date fix (ETCMS v1.1) and housekeeping
+- **Retrieved copy deleted:** the TC-19 copy of NJO v1.0 (`sys_remote_update_set` `a818bede…`, Previewed) and its 179 retrieved updates were deleted. The local NJO v1.0 stays Complete.
+- **Enrollment Date:** fixed on the ETCMS side, in a new ETCMS update set *ETCMS v1.1 - enrollment date*. The *Enroll in Security Awareness* subflow has an *Update Record* step after each *Create Record* that sets Enrollment Date from the new record's *Created* pill. Details are in the ETCMS dev log; TC-20 there passed (ENR0001023, 2026-11-13). NJO's flows did not change, so NJO v1.0 stays closed.
+- **Portability:** both ETCMS subflows are now in ETCMS v1.1 and exported to the ETCMS repo. `update-sets/README.md` points to that file as a prerequisite.
+- **Release:** `glide.war` on the PDI is `glide-brazil-08-25-2026__patch1-hotfix1` (patched 2026-10-12, before this build started). The docs said Zurich; all mentions now say Brazil.
+
+| Date | Issue | Resolution | Learning |
+|------|-------|------------|----------|
+| 2026-11-13 | REST-created update set landed in the NJO scope | Deleted it, set the REST session's application to ETCMS, created it again | A new update set takes the session's current application |
+| 2026-11-13 | Moving the Link subflow's Default customer update over REST returned an ACL error, even with the session in Global | Re-captured it instead: description edited and subflow re-published in Workflow Studio with ETCMS v1.1 current | A publish writes the whole flow as one `Flow` customer update |

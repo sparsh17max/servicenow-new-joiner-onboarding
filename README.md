@@ -4,7 +4,7 @@ A **ServiceNow scoped application** that turns a hiring manager's single Service
 
 Built **without code** — a CSA-focused project: Service Catalog, Flow Designer, Users/Groups/Roles, ACLs, SLA Definitions, Import Sets, Reports and Update Sets are all configuration. There are no scripts: even the hiring-manager ACL, where a one-line `gs.getUserID()` condition is the usual answer, uses the condition builder's *is (dynamic) Me*.
 
-- **Instance:** ServiceNow PDI (Zurich), branded for the fictional company *Novatrix Solutions*
+- **Instance:** ServiceNow PDI (Brazil), branded for the fictional company *Novatrix Solutions*
 - **Scope:** `x_2186817_njo`
 - **Author:** Sparsh Varde
 
@@ -74,5 +74,5 @@ The configuration is the update set [`update-sets/NJO-v1.0.xml`](update-sets/NJO
 Much of the configuration was first applied as Table API records from a local shell (session auth, see [scripts/README.md](scripts/README.md)). Flows, ACLs, reports and the dashboard were built in the browser. Table API writes do not create update records on this instance, so everything created over REST was re-saved in the UI with *NJO v1.0* current before the export. The shell was also used for checks and test evidence.
 
 ## Known limitations
-- Enrollments created by the ETCMS subflow have no *Enrollment Date*. A subflow has no trigger-date pill; the fix is a date input on the subflow.
+- ETCMS itself has no update set for its base application (it was built from `scripts/` and manual steps in its repo). Only the two subflows NJO calls are exported, in ETCMS v1.1.
 - The update set preview was run on the source instance only (no second instance available).

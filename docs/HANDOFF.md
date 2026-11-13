@@ -1,7 +1,7 @@
-# Project handoff — NJO (as of 2026-11-04)
+# Project handoff — NJO (as of 2026-11-13)
 
 ## Links
-- PDI: https://dev407572.service-now.com (Zurich), same instance as ETCMS. Login is the owner's; credentials only in the local `.env`.
+- PDI: https://dev407572.service-now.com (release Brazil, `glide-brazil-08-25-2026__patch1-hotfix1`), same instance as ETCMS. Login is the owner's; credentials only in the local `.env`.
 - GitHub: https://github.com/sparsh17max/servicenow-new-joiner-onboarding (commit identity: Sparsh Varde <sparshvarde@gmail.com>, per-repo config)
 - Notion tracker: https://app.notion.com/p/23b588ec7d454b2fb47c815626198e06 — data source `7ac3abbc-9d62-4916-b2ae-9ce2f35480d3`; properties Task, Phase, Status [Not Started/In Progress/Testing/Completed], Priority, Start Date, Completion Date, Evidence (URL), Concepts Learned, Issues Encountered. Views: Default (table), Kanban (board by Status).
 - Companion app: ETCMS, scope `x_2186817_employ_0`, repo `../servicenow-employee-training-management`.
@@ -35,8 +35,8 @@ CSA-focused: configure via UI / Table API records only. No business rules, clien
 | Flow *NJO Onboarding Orchestration* | `46b982ce93d81f10803931697bba1043` (Active, attached to the catalog item) |
 | Flow *NJO Create Joiner Account* | `7e1b964e935c1f10803931697bba10f5` (Active) |
 | ETCMS test session *Security Awareness Nov 2026* | `9649c68693d81f10803931697bba10dc` |
-| ETCMS subflow *Enroll in Security Awareness* (ETCMS scope, Default update set) | `8919ea0e93dc1f10803931697bba10e1` |
-| ETCMS subflow *Link Enrollment to Employee* (ETCMS scope, Default update set) | `b782fec293505f10803931697bba103f` |
+| ETCMS subflow *Enroll in Security Awareness* (ETCMS scope, ETCMS v1.1) | `8919ea0e93dc1f10803931697bba10e1` |
+| ETCMS subflow *Link Enrollment to Employee* (ETCMS scope, ETCMS v1.1) | `b782fec293505f10803931697bba103f` |
 | SLA defs IT account creation / Equipment ready | `d248630e93d45f10803931697bba100f` / `b648e30e93d45f10803931697bba10b3` |
 | SLA defs Desk & badge / HR paperwork | `ef48270693d45f10803931697bba106e` / `8c58270693d45f10803931697bba1074` |
 | SLA def TEST - 10 min breach (**inactive**) | `ec58270e93d45f10803931697bba10a4` |
@@ -51,6 +51,8 @@ CSA-focused: configure via UI / Table API records only. No business rules, clien
 | Reports Avg days to Ready / Upcoming starts | `86c6c81a93d85f10803931697bba1065` / `52c6c81a93d85f10803931697bba108d` |
 | Dashboard *Onboarding Operations* (`par_dashboard`) | `9047085a93d85f10803931697bba101a` |
 | Update set *NJO v1.0* | **Complete**, 179 updates, exported 2026-11-04 |
+| ETCMS update set *ETCMS v1.1 - enrollment date* | `20b40d1d93ac1710803931697bba10bf`, **Complete**, 2 updates (both subflows), exported 2026-11-13 to the ETCMS repo |
+| Test enrollment for the fix (TC-20 in ETCMS) | ENR0001023, Abel Tuter, `d957c99193ec1710803931697bba10b0` |
 
 ACLs (9, NJO scope): see `screenshots/acls-njo-tables.jpg` and the Step 12 table in the dev log. Creating or editing them needs *Elevate role → security_admin* in the browser session.
 
@@ -61,7 +63,7 @@ An NJO-scoped flow cannot create or update ETCMS Course Enrollment on this insta
 - NJO0001008 (Priya Nair, REQ0010007): Ready for Day One, 6 tasks closed, user `priya.nair`, ENR0001021. Its Employee was set by hand after the first TC-09 attempt.
 - NJO0001009 (Arjun Rao, REQ0010008): In Progress, IT account task closed, user `arjun.rao`, ENR0001022. HR, badge and L&D tasks are still open, so its Flow 1 context is Waiting.
 - The failed-run data (NJO0001002–07, REQ0010002–06) was deleted. The 5 ERROR flow contexts from those runs remain as history.
-- Known gap: enrollments created by the subflow have no *Enrollment Date* (Phase 5 polish).
+- ~~Known gap: enrollments created by the subflow have no *Enrollment Date*~~ — fixed 2026-11-13 in ETCMS v1.1 (new enrollments only; ENR0001021/22 stay empty).
 
 ### Test data after Phase 4
 - NJO0001010 (Meera Shah, REQ0010009, Hiring Manager **Jerrod Bennett**): In Progress, 5 open tasks NJOT0001018–22 with live SLAs; its Flow 1 context is Waiting. NJOT0001019 also carries the breached TEST SLA.
@@ -72,7 +74,7 @@ An NJO-scoped flow cannot create or update ETCMS Course Enrollment on this insta
 - NJO0001011–25: 15 imported cases (ISET0010001), Stage Requested, no tasks (import bypasses Flow 1). NJO0001011 and NJO0001015 were updated by the coalesced re-import ISET0010002.
 
 ## Open items
-- **Step 15 done (2026-11-04):** NJO v1.0 is **Complete** (179 updates) and exported to `update-sets/NJO-v1.0.xml`. Any further configuration needs a new update set (for example *NJO v1.1*); do not reopen v1.0. A retrieved copy (`sys_remote_update_set` `a818bede9310df10803931697bba104f`, state Previewed, not committed) remains on the PDI from TC-19 and can be deleted.
+- **Step 15 done (2026-11-04):** NJO v1.0 is **Complete** (179 updates) and exported to `update-sets/NJO-v1.0.xml`. Any further configuration needs a new update set (for example *NJO v1.1*); do not reopen v1.0. The TC-19 retrieved copy (`a818bede9310df10803931697bba104f`) was deleted on 2026-11-13.
 - Customer Update records that the platform wrote to *Default* belong to Global. To move them, switch the current application to Global first (security_admin is not what blocks it).
 - Groups, members and role grants are data — not captured by the update set.
 - Test data:

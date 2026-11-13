@@ -6,7 +6,7 @@
 | `par_dashboard_onboarding_operations.xml` | XML unload of the *Onboarding Operations* dashboard header record (see below) |
 
 ## Installing on another instance
-1. Prerequisite: ETCMS (`x_2186817_employ_0`) installed, including its two subflows *Enroll in Security Awareness* and *Link Enrollment to Employee*. Those are ETCMS configuration and are not in this file.
+1. Prerequisite: ETCMS (`x_2186817_employ_0`) installed, with Course Enrollment open to other scopes (*Can create*, *Can update*). Then load the ETCMS update set [`ETCMS-v1.1-enrollment-date.xml`](https://github.com/sparsh17max/servicenow-employee-training-management/blob/main/update-sets/ETCMS-v1.1-enrollment-date.xml), which carries the two subflows NJO calls, *Enroll in Security Awareness* and *Link Enrollment to Employee*. They are ETCMS configuration and are not in this file.
 2. *System Update Sets → Retrieved Update Sets → Import Update Set from XML* → `NJO-v1.0.xml` → **Preview** → **Commit**.
 3. *System Definition → Import XML* (on any list's context menu) → `par_dashboard_onboarding_operations.xml`.
 4. Recreate the data listed below, or load the joiners with the import set (`docs/sample-data/joiners.xlsx`).
@@ -26,7 +26,7 @@ It captures **configuration** (application files and records marked `update_sync
 - **Data:** cases, tasks, requests, users, groups, group members and role grants, the KB, its category and the article, import set rows, and SLA instances. Data travels as an import (the joiners spreadsheet) or XML unloads, or is recreated by hand.
 - **The `par_dashboard` header record:** Platform Analytics does not write it to the update set on this instance, although its children are captured. It is shipped separately as `par_dashboard_onboarding_operations.xml`.
 - **Changes made through the Table API:** on this instance only UI saves (forms, lists, Form Designer, Workflow Studio) create update records. Configuration first created over REST was re-saved in the UI so that it was captured.
-- **Changes in another scope:** the ETCMS subflows and ETCMS cross-scope access settings belong to ETCMS's update set.
+- **Changes in another scope:** the ETCMS subflows belong to ETCMS's update set *ETCMS v1.1 - enrollment date* (in the ETCMS repo). The ETCMS cross-scope access settings on Course Enrollment are part of the ETCMS application.
 
 ## Preview result (TC-19)
 I loaded the exported XML back onto the source PDI as a Retrieved Update Set and previewed it: **179 total, 0 collisions, 0 preview problems**. It shows 177 updated and 2 deleted because the records already exist there. No second instance was available, so a preview on an instance without the scope has not been run.
