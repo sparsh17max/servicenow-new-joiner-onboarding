@@ -51,6 +51,7 @@ CSA-focused: configure via UI / Table API records only. No business rules, clien
 | Reports Avg days to Ready / Upcoming starts | `86c6c81a93d85f10803931697bba1065` / `52c6c81a93d85f10803931697bba108d` |
 | Dashboard *Onboarding Operations* (`par_dashboard`) | `9047085a93d85f10803931697bba101a` |
 | Update set *NJO v1.0* | **Complete**, 179 updates, exported 2026-11-04 |
+| ETCMS update set *ETCMS v1.0 - full application* | `bce8895593ec1710803931697bba10c5`, **Complete**, 202 updates (*Publish to Update Set*), exported 2026-11-13 to the ETCMS repo |
 | ETCMS update set *ETCMS v1.1 - enrollment date* | `20b40d1d93ac1710803931697bba10bf`, **Complete**, 2 updates (both subflows), exported 2026-11-13 to the ETCMS repo |
 | Test enrollment for the fix (TC-20 in ETCMS) | ENR0001023, Abel Tuter, `d957c99193ec1710803931697bba10b0` |
 

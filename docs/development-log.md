@@ -421,3 +421,4 @@ I ran all three tests in the browser while impersonating **David Miller** (membe
 |------|-------|------------|----------|
 | 2026-11-13 | REST-created update set landed in the NJO scope | Deleted it, set the REST session's application to ETCMS, created it again | A new update set takes the session's current application |
 | 2026-11-13 | Moving the Link subflow's Default customer update over REST returned an ACL error, even with the session in Global | Re-captured it instead: description edited and subflow re-published in Workflow Studio with ETCMS v1.1 current | A publish writes the whole flow as one `Flow` customer update |
+- **Later the same day:** the whole ETCMS application was published to the update set *ETCMS v1.0 - full application* (202 updates) and exported to the ETCMS repo. NJO's install order is now ETCMS full application → ETCMS v1.1 → NJO v1.0.

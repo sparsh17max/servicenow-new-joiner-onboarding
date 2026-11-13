@@ -58,7 +58,7 @@ All 19 test cases pass.
 **NJO enrols joiners into ETCMS.** The [Employee Training and Certification Management](https://github.com/sparsh17max/servicenow-employee-training-management) app owns courses, sessions and enrollments. NJO's L&D path enrols each new joiner in the next *Security Awareness* session, and its IT account flow links that enrollment to the new user. The writes run in two ETCMS-scoped subflows; see [docs/architecture.md](docs/architecture.md#integration-with-etcms).
 
 ## Install
-The configuration is the update set [`update-sets/NJO-v1.0.xml`](update-sets/NJO-v1.0.xml), plus one dashboard XML. Steps, and what an update set does and does not carry, are in [update-sets/README.md](update-sets/README.md). Install ETCMS first.
+The configuration is the update set [`update-sets/NJO-v1.0.xml`](update-sets/NJO-v1.0.xml), plus one dashboard XML. Install order: **ETCMS v1.0 full application → ETCMS v1.1 → NJO v1.0** (the ETCMS files are in the [ETCMS repo](https://github.com/sparsh17max/servicenow-employee-training-management/tree/main/update-sets)). Steps, and what an update set does and does not carry, are in [update-sets/README.md](update-sets/README.md).
 
 ## Documentation
 - [Business requirements](docs/business-requirements.md) — BR-01…14 mapped to the build and the tests
@@ -74,5 +74,4 @@ The configuration is the update set [`update-sets/NJO-v1.0.xml`](update-sets/NJO
 Much of the configuration was first applied as Table API records from a local shell (session auth, see [scripts/README.md](scripts/README.md)). Flows, ACLs, reports and the dashboard were built in the browser. Table API writes do not create update records on this instance, so everything created over REST was re-saved in the UI with *NJO v1.0* current before the export. The shell was also used for checks and test evidence.
 
 ## Known limitations
-- ETCMS itself has no update set for its base application (it was built from `scripts/` and manual steps in its repo). Only the two subflows NJO calls are exported, in ETCMS v1.1.
 - The update set preview was run on the source instance only (no second instance available).
